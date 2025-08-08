@@ -1,0 +1,30 @@
+# Dependencies
+/node_modules
+
+# Build artifacts
+/.next/
+/out/
+
+# Local Environment Variables
+.env*.local
+
+# OS-specific
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+backlog.csv
+gemini.md
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
