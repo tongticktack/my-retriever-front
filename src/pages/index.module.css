@@ -1,0 +1,151 @@
+.main {
+  min-height: 100vh;
+  background-color: #faf1e6;
+  padding: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-bottom: 4rem;
+}
+
+.signupBtn {
+  padding: 0.5rem 1rem;
+  background-color: white;
+  border: 1px solid #1f2937;
+  border-radius: 0.375rem;
+  color: #1f2937;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.signupBtn:hover {
+  background-color: #f3f4f6;
+}
+
+.loginBtn {
+  padding: 0.5rem 1rem;
+  background-color: #374151;
+  border: 1px solid #374151;
+  border-radius: 0.375rem;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.loginBtn:hover {
+  background-color: #4b5563;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+}
+
+.logoSection {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.dogLogoContainer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.dogLogo {
+  width: 300px;
+  height: 300px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.searchSection {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background-color: white;
+}
+
+.searchInput::placeholder {
+  color: #9ca3af;
+}
+
+.searchButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.plusBtn {
+  padding: 0.75rem;
+  border: none;
+  border-radius: 0.375rem;
+  background-color: #f3f4f6;
+  color: #374151;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  min-width: 48px;
+}
+
+.plusBtn:hover {
+  background-color: #e5e7eb;
+}
+
+.imageBtn,
+.searchBtn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.imageBtn {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.imageBtn:hover {
+  background-color: #e5e7eb;
+}
+
+.searchBtn {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.searchBtn:hover {
+  background-color: #2563eb;
+}
