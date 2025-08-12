@@ -1,0 +1,27 @@
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 160px;
+  height: 100vh;
+  background-color: #faf1e6; /* 베이지색 배경 */
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+}
+
+.logo {
+  padding: 1.25rem 0 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.nav {
+  flex: 1;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+}
