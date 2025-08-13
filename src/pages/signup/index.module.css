@@ -103,3 +103,11 @@
 .googleBtn:focus-visible {
   box-shadow: 0 0 0 3px rgba(61, 53, 44, 0.25);
 }
+
+.error {
+  grid-column: span 2;
+  margin: 0.25rem 0 0;
+  color: #b3261e;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
