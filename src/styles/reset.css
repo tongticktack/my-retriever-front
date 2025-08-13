@@ -1,0 +1,30 @@
+/* Basic Reset & Form Control Normalization */
+/* Keep it minimal so design tokens stay in globals.css */
+
+/* Box sizing */
+*,*::before,*::after { box-sizing: border-box; }
+
+/* Remove default margins */
+html,body,h1,h2,h3,h4,h5,h6,p,figure,blockquote,dl,dd { margin:0; }
+
+/* Lists */
+ul,ol { list-style:none; margin:0; padding:0; }
+
+/* Links */
+a { text-decoration:none; color:inherit; }
+
+/* Images & media */
+img,svg,video,canvas,iframe { display:block; max-width:100%; }
+
+/* Tables */
+table { border-collapse:collapse; border-spacing:0; }
+
+/* Form elements inherit typography + colors */
+button,input,textarea,select { font: inherit; color: inherit; letter-spacing: inherit; background: none; }
+button { cursor:pointer; }
+
+/* Remove default border/outlines (we add focus styles manually) */
+button,input,textarea,select { border: none; outline: none; }
+
+/* Ensure placeholders inherit font */
+input::placeholder,textarea::placeholder { font: inherit; }
