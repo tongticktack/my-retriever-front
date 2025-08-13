@@ -3,8 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import Panel from "@/components/Panel";
 import styles from "./chat.module.css";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ChatPage() {
+  const { user, loading, signOutUser } = useAuth();
+
   return (
     <>
       <Head>
@@ -17,8 +20,25 @@ export default function ChatPage() {
         <Panel>
           <div className={styles.panelHeader}>
             <div className={styles.panelHeaderRight}>
-              <Link href="/signup" className={styles.signupBtn}>회원가입</Link>
-              <Link href="/login" className={styles.loginBtn}>로그인</Link>
+              {loading ? null : user ? (
+                <>
+                  <span className={styles.userName}>
+                    {user.displayName || user.email?.split("@")[0]}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={signOutUser}
+                    className={styles.logoutBtn}
+                  >
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/signup" className={styles.signupBtn}>회원가입</Link>
+                  <Link href="/login" className={styles.loginBtn}>로그인</Link>
+                </>
+              )}
             </div>
           </div>
           <div className={styles.content}>
