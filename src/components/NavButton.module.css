@@ -3,23 +3,24 @@
   align-items: center;
   justify-content: center;
   padding: 1rem 0.5rem;
-  color: #6b7280;
+  color: #7a766f;
   text-decoration: none;
   transition: all 0.2s ease;
   border-left: 3px solid transparent;
+  border-radius: 12px;
 }
 
 .navButton:hover {
-  background-color: #e5e7eb;
-  color: #1f2937;
-  border-left-color: #3b82f6;
+  background-color: #f2e9df;
+  color: #4f4739;
+  border-left-color: #4f4739;
 }
 
 .navButton.active {
-  background-color: #e5e7eb;
-  color: #1f2937;
-  border-left-color: #3b82f6;
-  font-weight: 500;
+  background-color: #efe4d9;
+  color: #4f4739;
+  border-left-color: #e9a15d;
+  font-weight: 600;
 }
 
 .menuContent {

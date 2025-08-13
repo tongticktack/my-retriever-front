@@ -22,8 +22,8 @@ export default function NavButton({ href, icon, label }: NavButtonProps) {
         <Image
           src={icon}
           alt={label}
-          width={24}
-          height={24}
+          width={30}
+          height={30}
           className={styles.icon}
         />
         <span className={styles.label}>{label}</span>
