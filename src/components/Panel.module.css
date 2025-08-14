@@ -4,11 +4,16 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  min-height: calc(100vh - 4rem); /* account for outer page padding */
+  min-height: calc(100vh - 4rem); /* default pages */
   display: flex;
   flex-direction: column;
   padding: 2rem 2rem 1.5rem;
   box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+}
+
+/* When placed inside a 100vh container (chat) we'll override min-height via inline class on parent */
+.panel.fullHeightParent & {
+  min-height: 100%;
 }
 
 .noPadding { padding: 0; }
