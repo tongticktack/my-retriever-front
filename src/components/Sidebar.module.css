@@ -25,3 +25,8 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Chat session list inserted after nav buttons */
+.nav :global(.chatSessionList) {
+  margin-top: 0.5rem;
+}
