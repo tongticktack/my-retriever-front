@@ -5,7 +5,7 @@ import Panel from "@/components/Panel";
 import styles from "./chat.module.css";
 import { useAuth } from "@/context/AuthContext";
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import ChatComposer from '@/components/ChatComposer';
+import ChatComposer from '@/components/chat/ChatComposer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
