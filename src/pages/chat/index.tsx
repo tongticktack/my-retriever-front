@@ -29,46 +29,32 @@ export default function ChatPage() {
 
   const sessionStorageKey = useMemo(() => user ? `chat_session_${user.uid}` : 'chat_session_guest', [user]);
   const isValidSessionId = useCallback((sid: string | null | undefined) => !!sid && sid !== 'undefined' && sid !== 'null', []);
-  const draftKey = useCallback((sid: string | null) => sid ? `chat_draft_${sid}` : 'chat_draft_new', []);
+  const draftKey = useCallback((sid: string | null) => sid ? `chat_draft_${sid}` : 'chat_draft_new', []); // 유지 (세션 없을 때 임시 draft)
   const inputRef = useRef('');
   useEffect(() => { inputRef.current = input; }, [input]);
 
-  // 사용자 변경(게스트 -> 로그인, 혹은 다른 계정) 시 세션 초기화 후 해당 사용자 저장된 세션 로드
+  // 사용자 변경 시: 로그인 사용자는 항상 새로 시작, 게스트는 이전 guest 세션만 복원
   const prevUserIdRef = useRef<string | null>(null);
   useEffect(() => {
     const currentUid = user ? user.uid : null;
     if (prevUserIdRef.current !== currentUid) {
-      // 사용자 변경됨
-      let restored: string | null = null;
-      try { restored = currentUid ? localStorage.getItem(`chat_session_${currentUid}`) : localStorage.getItem('chat_session_guest'); } catch {}
-      setSessionId(restored || null); // 없으면 null -> 첫 메시지 시 생성
-      setMessages([]); // 다른 사용자 기록과 섞이지 않도록 초기화
+      if (!user) {
+        // 게스트: 이전 guest 세션 복원 시도
+        let restored: string | null = null;
+        try { restored = localStorage.getItem('chat_session_guest'); } catch {}
+        setSessionId(isValidSessionId(restored || '') ? restored : null);
+      } else {
+        setSessionId(null);
+      }
+      setMessages([]);
       setInput('');
       prevUserIdRef.current = currentUid;
     }
-  }, [user]);
+  }, [user, isValidSessionId]);
 
-  // 로그인 여부와 관계없이 세션 복구
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(sessionStorageKey);
-      if (stored && isValidSessionId(stored)) {
-        setSessionId(stored);
-      } else {
-        if (stored && !isValidSessionId(stored)) {
-          // 잘못된 값 정리
-          localStorage.removeItem(sessionStorageKey);
-        }
-        setSessionId(null);
-      }
-    } catch { /* noop */ }
-  }, [sessionStorageKey, isValidSessionId]);
-
-  // 히스토리 로드 (선택된 세션)
   const loadHistory = useCallback(async (sid: string) => {
   if (!isValidSessionId(sid)) { return; }
     try {
-      // 이전 요청 취소
       if (historyAbortRef.current) historyAbortRef.current.abort();
       const ac = new AbortController();
       historyAbortRef.current = ac;
@@ -79,7 +65,6 @@ export default function ChatPage() {
       const primaryUrl = `${API_BASE}/chat/history/${encodeURIComponent(sid)}`;
       let res = await fetch(primaryUrl, { headers, signal: ac.signal });
       if (!res.ok) {
-        // fallback to query style (서버 라우팅 차이 대비)
         const fallbackUrl = `${API_BASE}/chat/history?session_id=${encodeURIComponent(sid)}`;
         const alt = await fetch(fallbackUrl, { headers, signal: ac.signal });
         if (alt.ok) {
@@ -112,11 +97,13 @@ export default function ChatPage() {
     finally { setHistoryLoading(false); }
   }, [user, isValidSessionId]);
 
+  // 게스트 모드에서 복원된 세션이 있고 아직 메시지를 불러오지 않았다면 자동 로드
+  useEffect(() => {
+    if (!user && isValidSessionId(sessionId) && messages.length === 0 && !historyLoading) {
+      void loadHistory(sessionId!);
+    }
+  }, [user, sessionId, messages.length, historyLoading, loadHistory, isValidSessionId]);
 
-
-  // (이전 effect 제거: 즉시 로드 방식으로 전환)
-
-  // 외부(사이드바)에서 세션 선택/생성 이벤트 수신 -> 세션 갱신 & 메시지 초기화 / 동일 세션 재선택 시 강제 reload
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<{ sessionId?: string }>).detail;
@@ -129,11 +116,9 @@ export default function ChatPage() {
             setError(null);
             // 즉시 히스토리 재로드
             if (isValidSessionId(newId)) void loadHistory(newId);
-            return prev; // sessionId 변화 없음
+            return prev;
         } else {
-          // 기존 세션 draft 저장
           try { if (prev) localStorage.setItem(draftKey(prev), inputRef.current); } catch {}
-          // 새 세션 draft 복원
           let draft = '';
           try { draft = localStorage.getItem(draftKey(newId)) || ''; } catch {}
           setInput(draft);
@@ -172,7 +157,7 @@ export default function ChatPage() {
   const sendMessage = useCallback(async () => {
     if (!input.trim()) return;
     const now = Date.now();
-  if (now - lastSendRef.current < RATE_LIMIT_MS) return; // rate limit
+  if (now - lastSendRef.current < RATE_LIMIT_MS) return;
   if (input.length > MAX_INPUT) return;
     lastSendRef.current = now;
 
@@ -242,7 +227,6 @@ export default function ChatPage() {
             }
           }
         }
-        // 최상위 assistant_message.content 우선 추출
         if (!assistantContent) {
           const topAssistant = (replyData as { assistant_message?: { content?: unknown } }).assistant_message;
           if (topAssistant && typeof topAssistant.content === 'string') {
@@ -256,7 +240,6 @@ export default function ChatPage() {
       }
       if (!assistantContent) assistantContent = JSON.stringify(replyData);
       setMessages(prev => [...prev, { role:'assistant', content: assistantContent, ts: Date.now() }]);
-      // 세션 제목이 서버에서 첫 응답 처리 후 생성/갱신될 수 있으므로 업데이트 이벤트 디스패치
       if (typeof window !== 'undefined' && currentSession) {
         window.dispatchEvent(new CustomEvent('chat-session-updated', { detail: { sessionId: currentSession, newlyCreated } }));
       }
