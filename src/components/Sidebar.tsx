@@ -13,7 +13,7 @@ export default function Sidebar() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const sessionStorageKey = user ? `chat_session_${user.uid}` : 'chat_session_guest';
   useEffect(() => {
-    try { const s = localStorage.getItem(sessionStorageKey); if (s) setActiveSessionId(s); } catch {}
+    setActiveSessionId(null);
   }, [sessionStorageKey]);
   useEffect(() => {
     const handler = (e: Event) => {
@@ -38,7 +38,7 @@ export default function Sidebar() {
 
   const handleSelect = useCallback(async (id: string) => {
     setActiveSessionId(id);
-    try { localStorage.setItem(sessionStorageKey, id); } catch {}
+  try { localStorage.setItem(sessionStorageKey, id); } catch {}
     if (router.pathname !== '/') {
       try { await router.push('/'); } catch (e) { console.warn('[sidebar] navigation error', e); }
     }
@@ -60,7 +60,7 @@ export default function Sidebar() {
       const newId = data.session_id || data.sessionId;
       if (!newId) return;
       setActiveSessionId(newId);
-      try { localStorage.setItem(sessionStorageKey, newId); } catch {}
+  try { localStorage.setItem(sessionStorageKey, newId); } catch {}
       if (router.pathname !== '/') {
         try { await router.push('/'); } catch (e) { console.warn('[sidebar] navigation error', e); }
       }
