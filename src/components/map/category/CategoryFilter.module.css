@@ -1,0 +1,20 @@
+/* src/components/map/CategoryFilter.module.css */
+.filterContainer {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.selectBox {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.selectBox:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
