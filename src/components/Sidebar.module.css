@@ -2,7 +2,7 @@
   position: fixed;
   left: 0;
   top: 0;
-  width: 160px;
+  width: var(--sidebar-width);
   height: 100vh;
   background-color: #faf1e6; /* 베이지색 배경 */
   border-right: 1px solid #e5e7eb;

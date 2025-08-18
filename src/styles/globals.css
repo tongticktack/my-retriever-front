@@ -57,6 +57,7 @@ a {
 }
 
 :root {
+  --sidebar-width: 200px; /* single source of truth for sidebar width */
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 255, 255, 255;
   --background-end-rgb: 255, 255, 255;
