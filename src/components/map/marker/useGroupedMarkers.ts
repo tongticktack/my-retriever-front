@@ -1,7 +1,7 @@
 // src/pages/map/useGroupedMarkers.ts
 
 import { useMemo } from 'react';
-import type { LostItem, RepresentativeMarker } from './types';
+import type { LostItem, RepresentativeMarker } from '../../../pages/map/types';
 
 export const useGroupedMarkers = (items: LostItem[]): RepresentativeMarker[] => {
   const representativeMarkers = useMemo((): RepresentativeMarker[] => {
