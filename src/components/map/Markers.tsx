@@ -4,14 +4,14 @@
 
 import React from 'react';
 import { MapMarker, MapInfoWindow, MarkerClusterer, CustomOverlayMap } from 'react-kakao-maps-sdk';
-import type { LostItem } from '@/pages/map/types';
-import type { RepresentativeMarker } from '@/pages/map/index';
+import type { LostItem, RepresentativeMarker } from '@/pages/map/types';
 
 interface MarkersProps {
   markers: RepresentativeMarker[];
   selectedMarker: LostItem | null;
   onMarkerClick: (item: LostItem | null) => void;
-  onClusterClick: (items: LostItem[]) => void;
+  // 👈 [수정] onClusterClick이 받는 파라미터 타입을 RepresentativeMarker로 변경합니다.
+  onClusterClick: (marker: RepresentativeMarker) => void; 
 }
 
 const Markers = ({ markers, selectedMarker, onMarkerClick, onClusterClick }: MarkersProps) => {
@@ -23,78 +23,67 @@ const Markers = ({ markers, selectedMarker, onMarkerClick, onClusterClick }: Mar
   };
 
   // react-kakao-maps-sdk 클러스터 스타일
-const clustererStyles = [
+  const clustererStyles = [
     {
-      width: "60px", // 클러스터 아이콘의 너비
-      height: "60px", // 클러스터 아이콘의 높이
-      // public 폴더의 SVG 파일을 배경 이미지로 사용합니다.
-      background: 'url(pawIcon.svg)',
-      backgroundSize: 'contain', // 이미지가 영역 안에 맞게 표시되도록 설정
-      color: "#ffffff", // 숫자 텍스트 색상
-      textAlign: "center",
-      linewidth: "20px",
-      textIndent: "4px",
-      lineHeight: "76px", // 숫자를 세로 중앙에 위치시키기 위해 높이와 같게 설정
-      fontSize: "17px",
-      fontWeight: "bold"
-    },
-    // 마커 개수가 더 많은 클러스터에 대한 스타일 (옵션)
-    {
-      width: "100px",
-      height: "100px",
-      background: 'url(pawIcon.svg)',
+      width: "60px",
+      height: "60px",
+      background: 'url(/pawIcon.svg) no-repeat center',
       backgroundSize: 'contain',
       color: "#ffffff",
       textAlign: "center",
-      textIndent: "9px",
-      lineHeight: "127px",
-      fontSize: "23px",
-      fontWeight: "bold"
+      lineHeight: "76px",
+      fontSize: "17px",
+      fontWeight: "bold",
+      textIndent: "4px",
+      textShadow: '1px 1px 2px black',
     },
   ];
   
-  const calculator = [15];
   return (
     <MarkerClusterer
       averageCenter={true}
       minLevel={4}
       styles={clustererStyles}
-      calculator={calculator}
     >
       {markers.map((marker) => {
         if (marker.isGroup) {
-          // 여러 아이템이 묶인 커스텀 클러스터
           return (
-            <CustomOverlayMap
-              key={marker.id}
-              position={{ lat: marker.lat, lng: marker.lng }}
-            >
-              <div
-                style={{
-                  width: "60px",
-                  height: "60px",
-                  background: 'url(/pawIcon.svg) no-repeat center',
-                  backgroundSize: 'contain',
-                  color: "#ffffff",
-                  textAlign: "center",
-                  lineHeight: "76px",
-                  fontSize: "17px",
-                  fontWeight: "bold",
-                  textIndent: "4px",
-                  textShadow: '1px 1px 2px black',
-                  cursor: 'pointer',
-                }}
-                onClick={() => {
-                  onMarkerClick(null);
-                  onClusterClick(marker.items);
-                }}
-              >
-                {marker.items.length}
-              </div>
-            </CustomOverlayMap>
+            <React.Fragment key={marker.id}>
+              <CustomOverlayMap position={{ lat: marker.lat, lng: marker.lng }}>
+                <div
+                  style={{
+                    width: "60px",
+                    height: "60px",
+                    background: 'url(/pawIcon.svg) no-repeat center',
+                    backgroundSize: 'contain',
+                    color: "#ffffff",
+                    textAlign: "center",
+                    lineHeight: "76px",
+                    fontSize: "17px",
+                    fontWeight: "bold",
+                    textIndent: "4px",
+                    textShadow: '1px 1px 2px black',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    onMarkerClick(null);
+                    onClusterClick(marker);
+                  }}
+                >
+                  {marker.items.length}
+                </div>
+              </CustomOverlayMap>
+              
+              {marker.items.map((item) => (
+                <MapMarker
+                  key={item.id}
+                  position={{ lat: item.lat, lng: item.lng }}
+                  opacity={0}
+                />
+              ))}
+            </React.Fragment>
           );
         } else {
-          // 단일 아이템 마커
           const item = marker.items[0];
           return (
             <React.Fragment key={item.id}>
@@ -106,7 +95,7 @@ const clustererStyles = [
               {selectedMarker && selectedMarker.id === item.id && (
                 <MapInfoWindow 
                   position={{ lat: item.lat, lng: item.lng }} 
-                  removable={false} // 👈 [수정] 닫기 버튼 제거
+                  removable={false}
                 >
                   <div style={{ padding: '10px', width: '220px', lineHeight: '1.5' }}>
                     <img
