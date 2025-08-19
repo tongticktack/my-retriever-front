@@ -1,7 +1,7 @@
-// src/pages/map/useGroupedMarkers.ts
+// src/components/map/marker/useGroupedMarkers.ts
 
 import { useMemo } from 'react';
-import type { LostItem, RepresentativeMarker } from '../../../pages/map/types';
+import type { LostItem, RepresentativeMarker } from '@/pages/map/types';
 
 export const useGroupedMarkers = (items: LostItem[]): RepresentativeMarker[] => {
   const representativeMarkers = useMemo((): RepresentativeMarker[] => {
@@ -19,16 +19,15 @@ export const useGroupedMarkers = (items: LostItem[]): RepresentativeMarker[] => 
       }
     });
 
+    // 클러스터링에 사용되던 key 속성을 제거하고 반환합니다.
     return Object.entries(groups).map(([key, groupItems]) => {
       const [lat, lng] = key.split(',').map(Number);
       return {
         lat,
         lng,
-        isGroup: groupItems.length > 1,
         items: groupItems,
         id: groupItems.length > 1 ? `group-${key}` : groupItems[0].id,
-        // 👈 [수정] addressName -> storagePlace 로 속성 이름을 다시 통일합니다.
-        storagePlace: groupItems[0].storagePlace, 
+        storagePlace: groupItems[0].storagePlace,
       };
     });
   }, [items]);
