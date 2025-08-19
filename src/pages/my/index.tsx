@@ -5,9 +5,9 @@ import styles from "./my.module.css";
 
 export default function MyPage() {
   const [currentPage, setCurrentPage] = useState<number>(6);
-  const totalPages = 42; // placeholder, replace with real total from API
+  const totalPages = 15; // 여긴 db에서 받아와야 함, 일단 1로 설정
 
-  // Determine current chunk of pages (10 per chunk)
+  
   const chunkSize = 10;
   const chunkIndex = Math.floor((currentPage - 1) / chunkSize);
   const startPage = chunkIndex * chunkSize + 1;
@@ -39,11 +39,10 @@ export default function MyPage() {
                 <div className={styles.filterLabel}>분실 장소</div>
                 <div className={styles.filterHint}>장소 추가</div>
               </button>
+              <button className={styles.searchButton} aria-label="검색">
+                <Image src="/search-outline.svg" alt="search" width={20} height={20} />
+              </button>
             </div>
-
-            <button className={styles.searchButton} aria-label="검색">
-              <Image src="/searchIcon.svg" alt="search" width={20} height={20} />
-            </button>
           </section>
 
           <section className={styles.tableWrap}>
