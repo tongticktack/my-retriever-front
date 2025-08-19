@@ -71,7 +71,7 @@
   padding: 0.4rem 0.9rem;
   display: flex;
   flex-direction: column;
-  align-items: flex-start; /* left-align label and hint */
+  align-items: flex-start;
   gap: 0.4rem; 
   position: relative;
   cursor: pointer;
@@ -113,6 +113,55 @@
 }
 
 .searchButton:hover { transform: translateY(-1px); }
+
+/* popover anchored to filter button */
+.filterPopover {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 10px;
+  width: 260px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  z-index: 60;
+  overflow: hidden;
+}
+.filterPopoverBody { 
+  padding: 12px;
+}
+
+.popoverSelect, .popoverInput { 
+  width: 100%; 
+  padding: 8px 10px; 
+  border: 1px solid #e6e6e6; 
+  border-radius: 8px; 
+}
+
+.filterPopoverFooter { 
+  display:flex; gap:8px; 
+  justify-content:flex-end; 
+  padding: 10px; 
+  border-top: 1px solid #f2f2f2; 
+}
+
+.popoverBtn { 
+  background: transparent; 
+  border: 1px solid #ddd; 
+  padding:6px 10px; 
+  border-radius:6px; 
+  cursor:pointer;
+}
+
+.popoverPrimary { 
+  background: #4F4739; 
+  color:#fff; 
+  border:none; 
+  padding:6px 10px; 
+  border-radius:6px; 
+  cursor:pointer;
+}
 
 .tableWrap {
   padding: 0 1rem 3.5rem;

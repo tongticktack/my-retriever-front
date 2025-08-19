@@ -2,10 +2,17 @@ import Image from "next/image";
 import { useState } from "react";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
+import FilterModal from "./FilterModal";
 
 export default function MyPage() {
   const [currentPage, setCurrentPage] = useState<number>(6);
-  const totalPages = 15; // 여긴 db에서 받아와야 함, 일단 1로 설정
+  const totalPages = 15; // 여길 db에서 받아와야 함, 일단 더미 값
+
+  // filter modal state
+  const [openFilter, setOpenFilter] = useState<null | "category" | "date" | "place">(null);
+  const [categoryValue, setCategoryValue] = useState<string | null>(null);
+  const [dateValue, setDateValue] = useState<string | null>(null);
+  const [placeValue, setPlaceValue] = useState<string | null>(null);
 
   
   const chunkSize = 10;
@@ -25,20 +32,57 @@ export default function MyPage() {
         <div className={styles.container}>
           <section className={styles.searchBar}>
             <div className={styles.filters}>
-              <button className={styles.filterItem} type="button">
+              <button
+                className={styles.filterItem}
+                type="button"
+                onClick={() => setOpenFilter(openFilter === "category" ? null : "category")}
+              >
                 <div className={styles.filterLabel}>물품 카테고리</div>
-                <div className={styles.filterHint}>카테고리 추가</div>
+                <div className={styles.filterHint}>{categoryValue ?? "카테고리 추가"}</div>
+
+                <FilterModal
+                  mode="category"
+                  open={openFilter === "category"}
+                  value={categoryValue}
+                  onChange={(v) => setCategoryValue(v)}
+                  onClose={() => setOpenFilter(null)}
+                />
               </button>
 
-              <button className={styles.filterItem} type="button">
+              <button
+                className={styles.filterItem}
+                type="button"
+                onClick={() => setOpenFilter(openFilter === "date" ? null : "date")}
+              >
                 <div className={styles.filterLabel}>분실 일자</div>
-                <div className={styles.filterHint}>날짜 추가</div>
+                <div className={styles.filterHint}>{dateValue ?? "날짜 추가"}</div>
+
+                <FilterModal
+                  mode="date"
+                  open={openFilter === "date"}
+                  value={dateValue}
+                  onChange={(v) => setDateValue(v)}
+                  onClose={() => setOpenFilter(null)}
+                />
               </button>
 
-              <button className={styles.filterItem} type="button">
+              <button
+                className={styles.filterItem}
+                type="button"
+                onClick={() => setOpenFilter(openFilter === "place" ? null : "place")}
+              >
                 <div className={styles.filterLabel}>분실 장소</div>
-                <div className={styles.filterHint}>장소 추가</div>
+                <div className={styles.filterHint}>{placeValue ?? "장소 추가"}</div>
+
+                <FilterModal
+                  mode="place"
+                  open={openFilter === "place"}
+                  value={placeValue}
+                  onChange={(v) => setPlaceValue(v)}
+                  onClose={() => setOpenFilter(null)}
+                />
               </button>
+
               <button className={styles.searchButton} aria-label="검색">
                 <Image src="/search-outline.svg" alt="search" width={20} height={20} />
               </button>
@@ -109,6 +153,8 @@ export default function MyPage() {
           </button>
         </div>
       </Panel>
+
+  {/* inline popovers are rendered inside filter buttons now */}
     </main>
   );
 }
