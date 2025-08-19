@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "./my.module.css";
+import styles from "./search.module.css";
 
 type Props = {
   mode: "category" | "date" | "place";

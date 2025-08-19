@@ -5,13 +5,28 @@
 }
 
 .header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  text-align: center;
+  position: relative;
+}
+
+/* header 밑에 구분선 넣으려고 가상 요소 넣은 것 */
+.header::after {
+  content: "";
+  display: block;
+  width: 92%;
+  height: 0.5px;
+  background: #4F4739;
+  margin: 17px auto 0;
 }
 
 .title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #1f2937;
+  font-size: 1.5rem;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-weight: 700;
+  color: #4F4739;
+  margin: 0 auto;
 }
 
 .content {
@@ -25,4 +40,224 @@
 .description {
   font-size: 1.125rem;
   color: #6b7280;
+}
+
+.container {
+  position: relative;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+  margin: 17px 0 2rem;
+}
+
+.filters {
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.45rem 0.6rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 0.5px solid #4F4739; 
+}
+
+.filterItem {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem; 
+  position: relative;
+  cursor: pointer;
+}
+
+.filterItem + .filterItem {
+  margin-left: 0.4rem;
+  padding-left: 0.9rem;
+  border-left: 0.5px solid #4F4739;
+}
+
+.filterLabel {
+  font-size: 0.75rem;
+  color: #4F4739;
+  font-weight: 600;
+  text-align: left;
+}
+
+.filterHint {
+  font-size: 0.55rem;
+  color: #4F4739;
+  font-weight: 400;
+  text-align: left;
+}
+
+.searchButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 0 4px rgba(59,58,54,0.25);
+  cursor: pointer;
+  margin-left: 0.35rem;
+  flex-shrink: 0;
+}
+
+.searchButton:hover { transform: translateY(-1px); }
+
+.filterPopover {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 10px;
+  width: 260px;
+  background: #fff;
+  /* important로 우선순위를 올린 것 */
+  border-radius: 20px !important;
+  box-shadow: 0 0 12px rgba(59,58,54,0.15);
+  z-index: 60;
+  overflow: hidden;
+}
+.filterPopoverBody { 
+  padding: 12px;
+  background: transparent;
+}
+
+.popoverSelect, .popoverInput { 
+  width: 100%; 
+  padding: 8px 10px; 
+  border: 1px solid #e6e6e6; 
+  border-radius: 8px; 
+}
+
+.filterPopoverFooter { 
+  display:flex; gap:8px; 
+  justify-content:flex-end; 
+  padding: 10px; 
+  border-top: 1px solid #f2f2f2; 
+}
+
+.popoverBtn { 
+  background: transparent; 
+  border: 1px solid #ddd; 
+  padding:8px 10px; 
+  border-radius:20px; 
+  cursor:pointer;
+}
+
+.popoverPrimary { 
+  background: #4F4739; 
+  color:#fff; 
+  border:none; 
+  padding:8px 10px; 
+  border-radius:20px; 
+  cursor:pointer;
+}
+
+.tableWrap {
+  padding: 0 1rem 3.5rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableHeaderRow th {
+  background: #fff;
+  color: #4F4739;
+  padding: 0.9rem 1rem;
+  text-align: center; 
+  vertical-align: middle;
+  font-weight: 700;
+  border: 1px solid #4F4739
+}
+
+.emptyRow { height: 420px; }
+.emptyCell {
+  background: transparent;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  --pg-gap: 0.75rem;
+  gap: var(--pg-gap);
+  margin-top: 2.5rem;
+}
+
+.pageNumbers {
+  display: flex;
+  gap: var(--pg-gap);
+  color: #9ca3af;
+  font-size: 0.85rem;
+  align-items: center;
+}
+
+.pageNumbers button {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.pageNumbers button:hover,
+.pageNumbers button:focus {
+  color: #6b7280;
+  outline: none;
+}
+
+.pageNumbers .current {
+  color: #4F4739;
+  font-weight: 700;
+}
+
+.nextArrow {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: #4F4739;
+  cursor: pointer;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prevArrow {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: #4F4739;
+  cursor: pointer;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .filters { padding: 0.5rem; }
+  .filterItem { padding: 0.3rem 0.6rem; }
+  .tableHeaderRow th { padding: 0.6rem 0.6rem; }
+  .emptyRow { height: 240px; }
 }
