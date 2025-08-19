@@ -1,49 +1,64 @@
 // src/pages/map/useLostItems.ts
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { LostItem } from './types';
 
-// 모듈 스코프에 캐시 변수를 만듭니다.
-// 이 변수는 앱이 새로고침 되기 전까지 데이터를 메모리에 유지합니다.
-let cachedItems: LostItem[] | null = null;
+let cachedData: {
+  portal: LostItem[] | null;
+  police: LostItem[] | null;
+} = {
+  portal: null,
+  police: null,
+};
+
+const fetchAndMapItems = async (collectionName: string): Promise<LostItem[]> => {
+  const querySnapshot = await getDocs(collection(db, collectionName));
+  return querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>): LostItem | null => {
+    const data = doc.data();
+    if (!data.location?.latitude || !data.location?.longitude) {
+      return null;
+    }
+    return {
+      id: doc.id,
+      category: data.itemCategory,
+      foundDate: data.foundDate,
+      photo: data.imageURL,
+      name: data.itemName,
+      lat: data.location.latitude,
+      lng: data.location.longitude,
+      storagePlace: data.storagePlace,
+    };
+  }).filter(Boolean) as LostItem[];
+};
 
 export const useLostItems = () => {
-  // 초기 상태를 캐시된 데이터로 우선 설정합니다.
-  const [items, setItems] = useState<LostItem[]>(cachedItems || []);
-  const [loading, setLoading] = useState(!cachedItems); // 캐시가 없으면 로딩 상태로 시작합니다.
+  const [portalItems, setPortalItems] = useState<LostItem[]>(cachedData.portal || []);
+  const [policeItems, setPoliceItems] = useState<LostItem[]>(cachedData.police || []);
+  const [loading, setLoading] = useState(!cachedData.portal || !cachedData.police);
 
   useEffect(() => {
     const getItems = async () => {
-      // 만약 캐시에 데이터가 이미 있다면, 네트워크 요청 없이 즉시 함수를 종료합니다.
-      if (cachedItems) {
+      if (cachedData.portal && cachedData.police) {
         return;
       }
 
-      // 캐시에 데이터가 없으면 Firestore에서 데이터를 가져옵니다.
       try {
-        const querySnapshot = await getDocs(collection(db, "testPortalLostItem2"));
-        
-        const itemsData = querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>): LostItem | null => {
-          const data = doc.data();
-          if (!data.location?.latitude || !data.location?.longitude) {
-            return null;
-          }
-          return {
-            id: doc.id,
-            category: data.itemCategory,
-            foundDate: data.foundDate,
-            photo: data.imageURL,
-            name: data.itemName,
-            lat: data.location.latitude,
-            lng: data.location.longitude,
-            storagePlace: data.storagePlace,
-          };
-        }).filter(Boolean) as LostItem[];
+        const [portalData, policeData] = await Promise.all([
+          fetchAndMapItems("testPortalLostItem3"),
+          fetchAndMapItems("testPortalLostItem3") 
+        ]);
 
-        cachedItems = itemsData; // 가져온 데이터를 캐시에 저장합니다.
-        setItems(itemsData);
+        console.log("Portal 데이터 개수:", portalData.length);
+        console.log("Police 데이터 개수:", policeData.length);
+
+        cachedData.portal = portalData;
+        cachedData.police = policeData;
+
+        setPortalItems(portalData);
+        setPoliceItems(policeData);
+
       } catch (error) {
         console.error("Firestore 데이터 수집 실패:", error);
       } finally {
@@ -52,7 +67,11 @@ export const useLostItems = () => {
     };
 
     getItems();
-  }, []); // 의존성 배열이 비어있어 컴포넌트가 처음 마운트될 때 한 번만 실행됩니다.
+  }, []);
 
-  return { items, loading };
+  const allItems = useMemo(() => [...portalItems, ...policeItems], [portalItems, policeItems]);
+
+  // 지도 페이지에서는 portalItems를 items라는 이름으로 사용하고,
+  // 다른 곳에서는 allItems 등을 사용할 수 있도록 모든 데이터를 반환합니다.
+  return { items: portalItems, portalItems, policeItems, allItems, loading };
 };

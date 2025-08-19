@@ -18,31 +18,28 @@ const MapViewer = dynamic(() => import('@/components/map/MapViewer'), {
 
 export default function MapPage() {
   const { items, loading } = useLostItems();
+  const [map, setMap] = useState<kakao.maps.Map | null>(null);
   const [mainCategory, setMainCategory] = useState('');
   const [subCategory, setSubCategory] = useState('');
 
   const filteredItems = useMemo(() => {
-    if (!mainCategory) {
-      return items;
-    }
+    if (!mainCategory) return items;
     return items.filter(item => {
+      if (!item.category) return false;
       const [itemMain, itemSub] = item.category.split(' > ');
-      if (!subCategory) {
-        return itemMain === mainCategory;
-      }
+      if (!subCategory) return itemMain === mainCategory;
       return itemMain === mainCategory && itemSub === subCategory;
     });
   }, [items, mainCategory, subCategory]);
 
   const representativeMarkers = useGroupedMarkers(filteredItems);
   
-  const [selectedMarker, setSelectedMarker] = useState<LostItem | null>(null);
   const [sidebarItems, setSidebarItems] = useState<LostItem[] | null>(null);
   const [sidebarLocation, setSidebarLocation] = useState<string | null>(null);
 
-  const handleClusterClick = (marker: RepresentativeMarker) => {
+  // 이 함수는 이제 Markers 컴포넌트 내부의 div 클릭 시 직접 호출됩니다.
+  const handleGroupClick = (marker: RepresentativeMarker) => {
     setSidebarItems(marker.items);
-    // 👈 [수정] marker.addressName -> marker.storagePlace 로 수정합니다.
     setSidebarLocation(marker.storagePlace); 
   };
 
@@ -52,9 +49,10 @@ export default function MapPage() {
   };
   
   const handleMapClick = () => {
-    setSelectedMarker(null);
     handleCloseSidebar();
   };
+
+  // 클러스터링 기능이 제거되었으므로 handleLibraryClusterClick 핸들러를 삭제합니다.
 
   return (
     <main className={styles.main}>
@@ -67,13 +65,12 @@ export default function MapPage() {
           }} />
         </div>
         <div className={styles.content} style={{ position: 'relative' }}>
-          <MapViewer onMapClick={handleMapClick}>
+          <MapViewer onMapClick={handleMapClick} onCreate={setMap}>
             {!loading && (
+              // Markers 컴포넌트에 onLibraryClusterClick prop을 전달하지 않습니다.
               <Markers
                 markers={representativeMarkers}
-                selectedMarker={selectedMarker}
-                onMarkerClick={setSelectedMarker}
-                onClusterClick={handleClusterClick}
+                onGroupClick={handleGroupClick}
               />
             )}
           </MapViewer>
