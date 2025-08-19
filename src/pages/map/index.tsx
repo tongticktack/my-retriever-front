@@ -32,27 +32,29 @@ export default function MapPage() {
     });
   }, [items, mainCategory, subCategory]);
 
+  // 그룹화된 마커를 생성하는 useGroupedMarkers 훅을 다시 사용합니다.
   const representativeMarkers = useGroupedMarkers(filteredItems);
   
+  // 사이드바에 표시할 그룹화된 아이템 목록과 장소 상태를 관리합니다.
   const [sidebarItems, setSidebarItems] = useState<LostItem[] | null>(null);
   const [sidebarLocation, setSidebarLocation] = useState<string | null>(null);
 
-  // 이 함수는 이제 Markers 컴포넌트 내부의 div 클릭 시 직접 호출됩니다.
+  // 그룹 마커를 클릭했을 때 호출될 핸들러입니다.
   const handleGroupClick = (marker: RepresentativeMarker) => {
     setSidebarItems(marker.items);
     setSidebarLocation(marker.storagePlace); 
   };
 
+  // 사이드바를 닫는 핸들러입니다.
   const handleCloseSidebar = () => {
     setSidebarItems(null);
     setSidebarLocation(null);
   };
   
+  // 지도 클릭 시 사이드바를 닫습니다.
   const handleMapClick = () => {
     handleCloseSidebar();
   };
-
-  // 클러스터링 기능이 제거되었으므로 handleLibraryClusterClick 핸들러를 삭제합니다.
 
   return (
     <main className={styles.main}>
@@ -67,13 +69,14 @@ export default function MapPage() {
         <div className={styles.content} style={{ position: 'relative' }}>
           <MapViewer onMapClick={handleMapClick} onCreate={setMap}>
             {!loading && (
-              // Markers 컴포넌트에 onLibraryClusterClick prop을 전달하지 않습니다.
+              // Markers 컴포넌트에 그룹화된 마커와 그룹 클릭 핸들러를 전달합니다.
               <Markers
                 markers={representativeMarkers}
                 onGroupClick={handleGroupClick}
               />
             )}
           </MapViewer>
+          {/* sidebarItems가 있을 때만 사이드바를 렌더링합니다. */}
           {sidebarItems && (
             <Sidebar 
               items={sidebarItems} 

@@ -46,7 +46,7 @@ export const useLostItems = () => {
 
       try {
         const [portalData, policeData] = await Promise.all([
-          fetchAndMapItems("testPortalLostItem3"),
+          fetchAndMapItems("testPortalLostItem4"),
           fetchAndMapItems("testPortalLostItem3") 
         ]);
 
