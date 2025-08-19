@@ -5,7 +5,15 @@ import styles from "./my.module.css";
 
 export default function MyPage() {
   const [currentPage, setCurrentPage] = useState<number>(6);
-  const totalPages = 10;
+  const totalPages = 42; // placeholder, replace with real total from API
+
+  // Determine current chunk of pages (10 per chunk)
+  const chunkSize = 10;
+  const chunkIndex = Math.floor((currentPage - 1) / chunkSize);
+  const startPage = chunkIndex * chunkSize + 1;
+  const endPage = Math.min(startPage + chunkSize - 1, totalPages);
+  const prevChunkStart = Math.max(1, startPage - chunkSize);
+  const nextChunkStart = Math.min(totalPages, startPage + chunkSize);
 
   return (
     <main className={styles.main}>
@@ -59,8 +67,18 @@ export default function MyPage() {
             </table>
 
             <div className={styles.pagination}>
+              <button
+                className={styles.prevArrow}
+                aria-label="이전 묶음"
+                onClick={() => setCurrentPage(prevChunkStart)}
+                type="button"
+                disabled={startPage === 1}
+              >
+                ‹
+              </button>
+
               <div className={styles.pageNumbers} role="navigation" aria-label="페이지 네비게이션">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((p) => (
                   <button
                     key={p}
                     className={p === currentPage ? styles.current : undefined}
@@ -73,15 +91,17 @@ export default function MyPage() {
                   </button>
                 ))}
               </div>
+
               <button
                 className={styles.nextArrow}
-                aria-label="다음"
-                onClick={() => setCurrentPage((c) => Math.min(c + 1, totalPages))}
+                aria-label="다음 묶음"
+                onClick={() => setCurrentPage(nextChunkStart)}
                 type="button"
+                disabled={endPage === totalPages}
               >
                 ›
               </button>
-            </div>
+              </div>
           </section>
 
           <button className={styles.floatingButton} type="button">

@@ -11,6 +11,7 @@
   position: relative;
 }
 
+/* header 밑에 구분선 넣으려고 가상 요소 넣은 것 */
 .header::after {
   content: "";
   display: block;
@@ -24,7 +25,7 @@
 .title {
   font-size: 1.75rem; /* reduced size */
   font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
-  font-weight: 600;
+  font-weight: 700;
   color: #4F4739; /* darker brown */
   margin: 0 auto;
 }
@@ -164,6 +165,15 @@
   font-size: 1.2rem;
   color: #4F4739;
   cursor: pointer;
+}
+
+.prevArrow {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: #4F4739;
+  cursor: pointer;
+  margin-right: 0.5rem;
 }
 
 .floatingButton {
