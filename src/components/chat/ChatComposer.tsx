@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import styles from './ChatComposer.module.css';
 
@@ -20,20 +20,56 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const allowedTypes = useRef(new Set(['image/png','image/jpeg']));
   const MAX_ATTACHMENTS = 3;
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per image
+  const [notice, setNotice] = useState<string | null>(null);
+  const showNotice = useCallback((msg: string) => {
+    setNotice(msg);
+  }, []);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 3800);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   const handleFiles = useCallback((fileList: FileList | null) => {
     if (!fileList) return;
-    const newFiles = Array.from(fileList).filter(f => allowedTypes.current.has(f.type));
-    if (!newFiles.length) return;
-    // Merge (avoid duplicates by name+size+lastModified)
+    const arr = Array.from(fileList);
+    let rejectedType = 0, rejectedSize = 0, rejectedOverLimit = 0;
+    const newFiles: File[] = [];
     const existing = attachments;
+    const currentLen = existing.length;
+    for (const f of arr) {
+      if (!allowedTypes.current.has(f.type)) { rejectedType++; continue; }
+      if (f.size > MAX_FILE_SIZE) { rejectedSize++; continue; }
+      if (currentLen + newFiles.length >= MAX_ATTACHMENTS) { rejectedOverLimit++; break; }
+      const dup = existing.some(e => e.name === f.name && e.size === f.size && e.lastModified === f.lastModified) || newFiles.some(e => e.name === f.name && e.size === f.size && e.lastModified === f.lastModified);
+      if (dup) continue; // duplicates silently skip
+      newFiles.push(f);
+    }
+    if (!newFiles.length) {
+      if (rejectedType || rejectedSize || rejectedOverLimit) {
+        const parts: string[] = [];
+        if (rejectedType) parts.push(`허용되지 않는 형식 ${rejectedType}개 (PNG/JPEG만 가능)`);
+        if (rejectedSize) parts.push(`5MB 초과 ${rejectedSize}개`);
+        if (rejectedOverLimit) parts.push(`최대 ${MAX_ATTACHMENTS}장 제한`);
+        showNotice(parts.join(' · '));
+      }
+      return;
+    }
+    // Merge (avoid duplicates by name+size+lastModified)
     const merged = [...existing];
     newFiles.forEach(f => {
-      const dup = existing.some(e => e.name === f.name && e.size === f.size && e.lastModified === f.lastModified);
-      if (!dup && merged.length < MAX_ATTACHMENTS) merged.push(f);
+      if (merged.length < MAX_ATTACHMENTS) merged.push(f);
     });
     onChangeAttachments(merged.slice(0, MAX_ATTACHMENTS));
-  }, [attachments, onChangeAttachments]);
+    if (rejectedType || rejectedSize || rejectedOverLimit) {
+      const parts: string[] = [];
+      if (rejectedType) parts.push(`형식 제외 ${rejectedType}`);
+      if (rejectedSize) parts.push(`5MB 초과 ${rejectedSize}`);
+      if (rejectedOverLimit) parts.push(`제한 초과`);
+      showNotice(parts.join(' · '));
+    }
+  }, [attachments, onChangeAttachments, MAX_FILE_SIZE, showNotice]);
 
   const handleKey = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -60,6 +96,9 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
             );
           })}
         </div>
+      )}
+      {notice && (
+        <div className={styles.notice} role="alert" aria-live="polite">{notice}</div>
       )}
       <div className={styles.composer}>
         <button
