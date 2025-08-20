@@ -129,7 +129,7 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
             e.currentTarget.value = '';
           }}
         />
-        <input
+  <input
           ref={inputRef}
           type="text"
           className={styles.input}
@@ -144,10 +144,22 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
             }
           }}
           onKeyDown={handleKey}
-          disabled={disabled}
+          // 입력창은 전송 중에도 계속 포커스를 유지하도록 disabled 제거
+          disabled={false}
           maxLength={maxLength}
         />
-  <button className={`${styles.sendBtn} ${sending ? styles.loading : ''}`} onClick={onSend} disabled={disabled || !value.trim()} aria-live="polite">
+  <button
+    className={`${styles.sendBtn} ${sending ? styles.loading : ''}`}
+    onMouseDown={(e) => { // 클릭 시 버튼이 포커스 훔치지 않게
+      e.preventDefault();
+    }}
+    onClick={() => {
+      onSend();
+      requestAnimationFrame(() => { inputRef.current?.focus(); });
+    }}
+    disabled={disabled || sending || !value.trim()}
+    aria-live="polite"
+  >
           {sending ? <span className={styles.spinner} aria-label="전송중" /> : '전송'}
         </button>
       </div>
