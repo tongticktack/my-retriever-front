@@ -206,6 +206,15 @@
 .dateDivider::before, .dateDivider::after { content:""; flex:1; height:1px; background:#e5e7eb; }
 .noMessages { padding:16px; text-align:center; font-size:.85rem; color:#9ca3af; }
 
+/* Attachments inside messages */
+.msgImages { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; max-width:640px; }
+.msgImagesUser { justify-content:flex-end; }
+.msgImagesAssistant { justify-content:flex-start; }
+.msgImageWrap { position:relative; width:140px; height:140px; border-radius:10px; overflow:hidden; background:#f3f3f3; border:1px solid #e5e7eb; }
+.msgImageWrap img.msgImage { width:100%; height:100%; object-fit:cover; display:block; }
+.msgImage { width:100%; height:100%; object-fit:cover; transition: transform .25s ease; }
+.msgImageWrap:hover .msgImage { transform: scale(1.03); }
+
 .inputSection { display:flex; flex-direction:column; gap:0.5rem; }
 
 /* Center input area */

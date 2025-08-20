@@ -15,3 +15,11 @@
 .input { flex:1; background:transparent; border:none; outline:none; padding:0.4rem 0.25rem; font-size:0.9rem; color:#1f2937; min-width:80px; }
 .input::placeholder { color:#9ca3af; }
 .imageIcon { display:block; width:18px; height:18px; }
+
+/* Attachments preview */
+.attachments { width:100%; max-width:640px; display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.attachmentsTop { margin-top:0; margin-bottom:8px; }
+.thumb { position:relative; width:60px; height:60px; border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#fafafa; }
+.thumbImg { object-fit:cover; width:60px; height:60px; }
+.removeBtn { position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.55); color:#fff; border:none; width:18px; height:18px; border-radius:50%; font-size:11px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.removeBtn:hover { background:rgba(0,0,0,0.75); }
