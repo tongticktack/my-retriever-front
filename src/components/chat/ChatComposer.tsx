@@ -18,6 +18,7 @@ interface ChatComposerProps {
 export default function ChatComposer({ value, onChange, onSend, disabled, placeholder, sending, maxLength, attachments, onChangeAttachments, uploading }: ChatComposerProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const composingRef = useRef(false); // IME 조합 중 여부
   const allowedTypes = useRef(new Set(['image/png','image/jpeg']));
   const MAX_ATTACHMENTS = 3;
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per image
@@ -72,9 +73,14 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
   }, [attachments, onChangeAttachments, MAX_FILE_SIZE, showNotice]);
 
   const handleKey = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (composingRef.current) return; // 조합 중에는 전송 금지 (첫 글자 남는 문제 방지)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && value.trim()) onSend();
+      if (!disabled && value.trim()) {
+        onSend();
+        // 즉시 DOM 반영 강제 (React state 비동기 반영 중 IME race 방지)
+        if (inputRef.current) inputRef.current.value = '';
+      }
     }
   }, [onSend, disabled, value]);
 
@@ -129,7 +135,7 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
             e.currentTarget.value = '';
           }}
         />
-  <input
+        <input
           ref={inputRef}
           type="text"
           className={styles.input}
@@ -144,6 +150,14 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
             }
           }}
           onKeyDown={handleKey}
+          onCompositionStart={() => { composingRef.current = true; }}
+          onCompositionEnd={() => {
+            composingRef.current = false;
+            // 조합 종료 후 value state 와 DOM 동기화
+            if (inputRef.current && inputRef.current.value !== value) {
+              inputRef.current.value = value;
+            }
+          }}
           // 입력창은 전송 중에도 계속 포커스를 유지하도록 disabled 제거
           disabled={false}
           maxLength={maxLength}
