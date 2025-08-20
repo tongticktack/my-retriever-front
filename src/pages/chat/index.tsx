@@ -10,7 +10,18 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 
-type ChatMessage = { role: 'user' | 'assistant'; content: string; ts: number };
+type ChatAttachment = {
+  media_id?: string;
+  url: string;
+  width?: number;
+  height?: number;
+  hash?: string;
+  palette?: string[];
+  content_type?: string;
+  // local optimistic flag (object URL) so we can revoke later if needed
+  __localUrl?: boolean;
+};
+type ChatMessage = { role: 'user' | 'assistant'; content: string; ts: number; attachments?: ChatAttachment[] };
 
 const API_BASE = process.env.NEXT_PUBLIC_CHAT_API_BASE || 'http://localhost:8000';
 
@@ -22,6 +33,8 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const historyAbortRef = useRef<AbortController | null>(null);
@@ -62,10 +75,10 @@ export default function ChatPage() {
       const token = user ? await user.getIdToken() : null;
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      const primaryUrl = `${API_BASE}/chat/history/${encodeURIComponent(sid)}`;
+      const primaryUrl = `${API_BASE}/chat/history/${encodeURIComponent(sid)}?limit=50`;
       let res = await fetch(primaryUrl, { headers, signal: ac.signal });
       if (!res.ok) {
-        const fallbackUrl = `${API_BASE}/chat/history?session_id=${encodeURIComponent(sid)}`;
+        const fallbackUrl = `${API_BASE}/chat/history?session_id=${encodeURIComponent(sid)}&limit=50`;
         const alt = await fetch(fallbackUrl, { headers, signal: ac.signal });
         if (alt.ok) {
           res = alt;
@@ -74,15 +87,37 @@ export default function ChatPage() {
         }
       }
       const data = await res.json();
-      type RawMsg = { role?: unknown; content?: unknown; ts?: unknown };
+      type RawMsg = { role?: unknown; content?: unknown; ts?: unknown; created_at?: unknown; attachments?: unknown };
       const rawList: RawMsg[] = Array.isArray(data.messages) ? data.messages : Array.isArray(data) ? data : [];
       const mapped: ChatMessage[] = rawList.map((m, idx) => {
         let content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
         if (content.length > 8000) content = content.slice(0, 8000) + '\n... (truncated)';
+        let ts: number;
+        if (typeof m.ts === 'number') ts = m.ts; else if (typeof m.ts === 'string') ts = Date.parse(m.ts); else if (typeof m.created_at === 'string') ts = Date.parse(m.created_at); else ts = Date.now() - (rawList.length - idx) * 1000;
+        // attachments parsing
+        let attachments: ChatAttachment[] | undefined;
+        if (m.attachments && Array.isArray(m.attachments)) {
+          attachments = m.attachments.map((raw: unknown) => {
+            if (!raw || typeof raw !== 'object') return null;
+            const a = raw as Record<string, unknown>;
+            const url = typeof a.url === 'string' ? a.url : '';
+            if (!url) return null;
+            return {
+              media_id: typeof a.media_id === 'string' ? a.media_id : (typeof a.mediaId === 'string' ? a.mediaId : (typeof a.id === 'string' ? a.id : undefined)),
+              url,
+              width: typeof a.width === 'number' ? a.width : undefined,
+              height: typeof a.height === 'number' ? a.height : undefined,
+              hash: typeof a.hash === 'string' ? a.hash : undefined,
+              palette: Array.isArray(a.palette) ? a.palette.filter((p: unknown): p is string => typeof p === 'string') : undefined,
+              content_type: typeof a.content_type === 'string' ? a.content_type : (typeof a.mime === 'string' ? a.mime : undefined),
+            } as ChatAttachment;
+          }).filter((x: ChatAttachment | null): x is ChatAttachment => !!x);
+        }
         return {
           role: m.role === 'assistant' ? 'assistant' : 'user',
           content,
-          ts: typeof m.ts === 'number' ? m.ts : (typeof m.ts === 'string' ? Date.parse(m.ts) : Date.now() - (rawList.length - idx) * 1000),
+          ts,
+          attachments,
         };
       });
       setMessages(mapped);
@@ -154,8 +189,29 @@ export default function ChatPage() {
   }, [input, sessionId, draftKey]);
 
   // sendMessage: 로그인 없어도 동작 (token optional)
+  const uploadAttachments = useCallback(async (): Promise<string[]> => {
+    if (!attachments.length) return [];
+    setUploading(true);
+    const ids: string[] = [];
+    try {
+      for (const file of attachments) {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch(`${API_BASE}/media/upload`, { method:'POST', body: form });
+        if (!res.ok) throw new Error('이미지 업로드 실패');
+        const data = await res.json();
+        const mediaId = data.media_id || data.mediaId || data.id;
+        if (mediaId) ids.push(mediaId);
+      }
+    } finally {
+      setUploading(false);
+    }
+    return ids;
+  }, [attachments]);
+
   const sendMessage = useCallback(async () => {
-    if (!input.trim()) return;
+    // 텍스트 필수: 이미지만은 전송 불가
+    if (!input.trim()) return; // attachments 무시
     const now = Date.now();
   if (now - lastSendRef.current < RATE_LIMIT_MS) return;
   if (input.length > MAX_INPUT) return;
@@ -192,12 +248,21 @@ export default function ChatPage() {
         }
         newlyCreated = true;
       }
-      // 사용자 메시지 추가 (고정 timestamp)
-      setMessages(prev => [...prev, { role:'user', content: originalInput, ts: createdAt }]);
-      setInput('');
+  // 첨부 파일 로컬 미리보기 생성 (optimistic)
+  const filesSnapshot = attachments.slice();
+  const localAttachments: ChatAttachment[] = filesSnapshot.map(f => ({ url: URL.createObjectURL(f), __localUrl: true }));
+  // 이미지 먼저 업로드하여 media_ids 확보
+  let mediaIds: string[] = [];
+  try { mediaIds = await uploadAttachments(); } catch (e) { throw e instanceof Error ? e : new Error('이미지 업로드 오류'); }
+  const composedContent = originalInput;
+  setMessages(prev => [...prev, { role:'user', content: composedContent, ts: createdAt, attachments: localAttachments.length ? localAttachments : undefined }]);
+  setInput('');
+  setAttachments([]);
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      const resSend = await fetch(`${API_BASE}/chat/send`, { method:'POST', headers, body: JSON.stringify({ session_id: currentSession, content: originalInput }) });
+  const bodyPayload: Record<string, unknown> = { session_id: currentSession, content: originalInput };
+  if (mediaIds.length) bodyPayload.media_ids = mediaIds;
+  const resSend = await fetch(`${API_BASE}/chat/send`, { method:'POST', headers, body: JSON.stringify(bodyPayload) });
       if (!resSend.ok) throw new Error('메시지 전송 실패');
       const replyData = await resSend.json();
       // 서버 응답에서 LLM 메시지 추출 우선순위:
@@ -243,6 +308,10 @@ export default function ChatPage() {
       if (typeof window !== 'undefined' && currentSession) {
         window.dispatchEvent(new CustomEvent('chat-session-updated', { detail: { sessionId: currentSession, newlyCreated } }));
       }
+      // 최신 상태 동기화를 위해 히스토리 재로드 (첨부 실제 URL 반영)
+      if (currentSession) {
+        setTimeout(() => { void loadHistory(currentSession!); }, 150);
+      }
     } catch (e: unknown) {
       if (e instanceof Error) setError(e.message); else setError('에러 발생');
       setInput(prev => prev || originalInput);
@@ -250,7 +319,7 @@ export default function ChatPage() {
     } finally {
       setSending(false);
     }
-  }, [input, sessionId, user, sessionStorageKey, isValidSessionId]);
+  }, [input, attachments, sessionId, user, sessionStorageKey, isValidSessionId, uploadAttachments, loadHistory]);
 
   // 자동 스크롤
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -326,6 +395,21 @@ export default function ChatPage() {
                         </div>
                       )}
                       <div className={styles.msgStack} style={isUser ? { alignItems:'flex-end' } : undefined}>
+                        {m.attachments && m.attachments.length > 0 && (
+                          <div className={`${styles.msgImages} ${isUser ? styles.msgImagesUser : styles.msgImagesAssistant}`}>
+                            {m.attachments.map((att, ai) => (
+                              <div key={ai} className={styles.msgImageWrap}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={att.url}
+                                  alt={att.media_id || `attachment-${ai}`}
+                                  className={styles.msgImage}
+                                  onLoad={() => { if (att.__localUrl) { try { URL.revokeObjectURL(att.url); } catch {} } }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <div className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant} ${!isUser ? styles.bubbleWithAvatar : ''}`}>
                           {isUser ? m.content : (
                             <ReactMarkdown
@@ -357,9 +441,12 @@ export default function ChatPage() {
                   value={input}
                   onChange={setInput}
                   onSend={handleSend}
-                  disabled={sending}
+                  disabled={sending || uploading}
                   sending={sending}
                   maxLength={MAX_INPUT}
+                  attachments={attachments}
+                  onChangeAttachments={setAttachments}
+                  uploading={uploading}
                   placeholder={user ? '나 오늘 오후 1시쯤 성균관대 근처에서 파란색 지갑을 잃어버렸어.' : '나 오늘 오후 1시쯤 성균관대 근처에서 파란색 지갑을 잃어버렸어.'}
                 />
                 </div>
