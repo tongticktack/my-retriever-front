@@ -23,3 +23,7 @@
 .thumbImg { object-fit:cover; width:60px; height:60px; }
 .removeBtn { position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.55); color:#fff; border:none; width:18px; height:18px; border-radius:50%; font-size:11px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .removeBtn:hover { background:rgba(0,0,0,0.75); }
+
+/* Notice / toast */
+.notice { margin-top:6px; font-size:0.65rem; color:#b45309; background:#fff7ed; border:1px solid #fcd9b6; padding:4px 8px; border-radius:6px; max-width:640px; width:100%; text-align:left; animation:fadeIn .25s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(-2px); } to { opacity:1; transform:translateY(0); } }
