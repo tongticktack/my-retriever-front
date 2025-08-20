@@ -9,6 +9,7 @@ interface ItemDetailProps {
 }
 
 const ItemDetail = ({ item, onBack }: ItemDetailProps) => {
+  console.log("전달된 사진 URL:", item.photo);
   return (
     <div className={styles.detailContainer}>
       <button onClick={onBack} className={styles.backButton}>&larr; 목록으로 돌아가기</button>
@@ -16,6 +17,10 @@ const ItemDetail = ({ item, onBack }: ItemDetailProps) => {
         src={item.photo || 'https://placehold.co/350x200?text=No+Image'}
         alt={item.name}
         className={styles.detailImage}
+        onError={(e) => {
+          e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif';
+          e.currentTarget.onerror = null; // 무한 루프 방지
+        }}
       />
       <div className={styles.detailInfo}>
         <h4 className={styles.detailName}>{item.name}</h4>

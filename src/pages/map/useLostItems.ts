@@ -24,7 +24,7 @@ const fetchAndMapItems = async (collectionName: string): Promise<LostItem[]> => 
       id: doc.id,
       category: data.itemCategory,
       foundDate: data.foundDate,
-      photo: data.imageURL,
+      photo: data.imageUrl,
       name: data.itemName,
       lat: data.location.latitude,
       lng: data.location.longitude,
@@ -46,13 +46,12 @@ export const useLostItems = () => {
 
       try {
         const [portalData, policeData] = await Promise.all([
-          fetchAndMapItems("testPortalLostItem4"),
-          fetchAndMapItems("testPortalLostItem3") 
+          fetchAndMapItems("PortalLostItem"),
+          fetchAndMapItems("PoliceLostItem")
         ]);
 
         console.log("Portal 데이터 개수:", portalData.length);
         console.log("Police 데이터 개수:", policeData.length);
-
         cachedData.portal = portalData;
         cachedData.police = policeData;
 

@@ -19,7 +19,7 @@ const Sidebar = ({ items, storagePlace, onClose }: SidebarProps) => {
     setDetailItem(null);
   }, [items]);
 
-    const sortedItems = useMemo(() => {
+  const sortedItems = useMemo(() => {
     // 원본 배열을 변경하지 않기 위해 복사본을 만들어 정렬합니다.
     return [...items].sort((a, b) => new Date(b.foundDate).getTime() - new Date(a.foundDate).getTime());
   }, [items]);
@@ -53,6 +53,10 @@ const Sidebar = ({ items, storagePlace, onClose }: SidebarProps) => {
                 src={item.photo || 'https://placehold.co/80x80?text=No+Image'}
                 alt={item.name}
                 className={styles.itemImage}
+                onError={(e) => {
+                  e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif';
+                  e.currentTarget.onerror = null; // 무한 루프 방지
+                }}
               />
               <div className={styles.itemInfo}>
                 <p className={styles.itemName}>{item.name}</p>
