@@ -4,7 +4,7 @@ import Link from "next/link";
 import Panel from "@/components/Panel";
 import styles from "./chat.module.css";
 import { useAuth } from "@/context/AuthContext";
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import ChatComposer from '@/components/chat/ChatComposer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -33,14 +33,15 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading] = useState(false); // 업로드 진행 표시 (순차 업로드 즉시 처리되어 미사용 상태)
   const [attachments, setAttachments] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const historyAbortRef = useRef<AbortController | null>(null);
   const lastSendRef = useRef<number>(0);
 
-  const sessionStorageKey = useMemo(() => user ? `chat_session_${user.uid}` : 'chat_session_guest', [user]);
+  // 세션 복원 용 키 (게스트/유저 구분) - 현재 직접 로컬스토리지 접근으로 대체되어 미사용, 향후 유지 가능
+  // const sessionStorageKey = useMemo(() => user ? `chat_session_${user.uid}` : 'chat_session_guest', [user]);
   const isValidSessionId = useCallback((sid: string | null | undefined) => !!sid && sid !== 'undefined' && sid !== 'null', []);
   const draftKey = useCallback((sid: string | null) => sid ? `chat_draft_${sid}` : 'chat_draft_new', []); // 유지 (세션 없을 때 임시 draft)
   const inputRef = useRef('');
@@ -146,12 +147,9 @@ export default function ChatPage() {
       const newId = detail.sessionId;
       setSessionId(prev => {
         if (prev === newId) {
-          // 동일 세션 재선택: 강제 reload (메시지만 초기화, input 유지)
-            setMessages([]);
-            setError(null);
-            // 즉시 히스토리 재로드
-            if (isValidSessionId(newId)) void loadHistory(newId);
-            return prev;
+          // 동일 세션 재선택: 기존 메시지 유지 (깜빡임 방지). 필요 시 최신 메시지만 merge 로드 가능.
+          // if (isValidSessionId(newId)) void loadHistory(newId); // 선택적 갱신 비활성화
+          return prev;
         } else {
           try { if (prev) localStorage.setItem(draftKey(prev), inputRef.current); } catch {}
           let draft = '';
@@ -189,137 +187,98 @@ export default function ChatPage() {
   }, [input, sessionId, draftKey]);
 
   // sendMessage: 로그인 없어도 동작 (token optional)
-  const uploadAttachments = useCallback(async (): Promise<string[]> => {
-    if (!attachments.length) return [];
-    setUploading(true);
-    const ids: string[] = [];
-    try {
-      for (const file of attachments) {
-        const form = new FormData();
-        form.append('file', file);
-        const res = await fetch(`${API_BASE}/media/upload`, { method:'POST', body: form });
-        if (!res.ok) throw new Error('이미지 업로드 실패');
-        const data = await res.json();
-        const mediaId = data.media_id || data.mediaId || data.id;
-        if (mediaId) ids.push(mediaId);
-      }
-    } finally {
-      setUploading(false);
-    }
-    return ids;
-  }, [attachments]);
+  // (이전 구현 잔여) 별도 업로드 헬퍼 사용하지 않음
 
   const sendMessage = useCallback(async () => {
-    // 텍스트 필수: 이미지만은 전송 불가
-    if (!input.trim()) return; // attachments 무시
+    if (!input.trim()) return; // text required (no image-only)
+    if (input.length > MAX_INPUT) return;
     const now = Date.now();
-  if (now - lastSendRef.current < RATE_LIMIT_MS) return;
-  if (input.length > MAX_INPUT) return;
+    if (now - lastSendRef.current < RATE_LIMIT_MS) return; // rate limit
     lastSendRef.current = now;
-
-    setError(null);
     setSending(true);
     const originalInput = input;
-    const createdAt = Date.now();
+    const localFiles = attachments.slice();
     try {
+      // optimistic user message with local object URLs
+      const localPreviews: ChatAttachment[] = localFiles.map(f => ({ url: URL.createObjectURL(f), __localUrl: true }));
+      setMessages(prev => [...prev, { role: 'user', content: originalInput, ts: Date.now(), attachments: localPreviews }]);
+      setInput('');
+      setAttachments([]);
+
+      // auth headers
       const token = user ? await user.getIdToken() : null;
-      let currentSession = isValidSessionId(sessionId) ? sessionId : null;
+      const authHeaders: Record<string,string> = {};
+      if (token) authHeaders['Authorization'] = `Bearer ${token}`;
+
+      // create session if needed
+      let currentSession = sessionId;
       let newlyCreated = false;
-      if (!currentSession) {
-        const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        const resSession = await fetch(`${API_BASE}/chat/session`, { 
-          method:'POST',
-          headers,
-          body: JSON.stringify({
-            anonymous: !user,
-            user_id: user ? user.uid : "guest"
-          }) 
-        });
-        if (!resSession.ok) throw new Error('세션 생성 실패');
-        const sessionData = await resSession.json();
-        currentSession = sessionData.session_id || sessionData.sessionId;
-  if (!currentSession) throw new Error('session_id 없음');
-        setSessionId(currentSession);
-        try { if (currentSession) localStorage.setItem(sessionStorageKey, currentSession); } catch {}
-        if (typeof window !== 'undefined' && currentSession) {
-          window.dispatchEvent(new CustomEvent('chat-session-created', { detail: { sessionId: currentSession } }));
-          window.dispatchEvent(new CustomEvent('chat-session-selected', { detail: { sessionId: currentSession } }));
-        }
+      if (!isValidSessionId(currentSession)) {
+        const sessionResp = await fetch(`${API_BASE}/chat/session`, { method:'POST', headers: authHeaders });
+        if (!sessionResp.ok) throw new Error('세션 생성 실패');
+        const sData = await sessionResp.json();
+        currentSession = sData.session_id || sData.id;
         newlyCreated = true;
+        setSessionId(currentSession);
+        window.dispatchEvent(new CustomEvent('chat-session-created', { detail: { session: sData } }));
       }
-  // 첨부 파일 로컬 미리보기 생성 (optimistic)
-  const filesSnapshot = attachments.slice();
-  const localAttachments: ChatAttachment[] = filesSnapshot.map(f => ({ url: URL.createObjectURL(f), __localUrl: true }));
-  // 이미지 먼저 업로드하여 media_ids 확보
-  let mediaIds: string[] = [];
-  try { mediaIds = await uploadAttachments(); } catch (e) { throw e instanceof Error ? e : new Error('이미지 업로드 오류'); }
-  const composedContent = originalInput;
-  setMessages(prev => [...prev, { role:'user', content: composedContent, ts: createdAt, attachments: localAttachments.length ? localAttachments : undefined }]);
-  setInput('');
-  setAttachments([]);
-      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-  const bodyPayload: Record<string, unknown> = { session_id: currentSession, content: originalInput };
-  if (mediaIds.length) bodyPayload.media_ids = mediaIds;
-  const resSend = await fetch(`${API_BASE}/chat/send`, { method:'POST', headers, body: JSON.stringify(bodyPayload) });
-      if (!resSend.ok) throw new Error('메시지 전송 실패');
-      const replyData = await resSend.json();
-      // 서버 응답에서 LLM 메시지 추출 우선순위:
-      // 1) replyData.body.content (권장 스키마)
-      // 2) replyData.body (문자열일 경우)
-      // 3) replyData.content / reply
-      // 4) body가 배열일 때 첫 요소의 content
+
+      // upload attachments (reuse existing helper for consistency) - but we need token; fallback to manual if token present
+      const mediaIds: string[] = [];
+      for (const f of localFiles) {
+        const form = new FormData();
+        form.append('file', f);
+        const upResp = await fetch(`${API_BASE}/media/upload`, { method:'POST', headers: authHeaders, body: form });
+        if (!upResp.ok) throw new Error('이미지 업로드 실패');
+        const upData = await upResp.json();
+        const mid = upData.media_id || upData.mediaId || upData.id;
+        if (mid) mediaIds.push(mid);
+      }
+
+      // send message
+      const sendHeaders: Record<string,string> = { 'Content-Type': 'application/json', ...authHeaders };
+      const body = { session_id: currentSession, content: originalInput, media_ids: mediaIds };
+      const sendResp = await fetch(`${API_BASE}/chat/send`, { method:'POST', headers: sendHeaders, body: JSON.stringify(body) });
+      if (!sendResp.ok) throw new Error('전송 실패');
+      const payload = await sendResp.json();
+      // try common shapes
       let assistantContent: string | undefined;
-      if (replyData) {
-        const body: unknown = (replyData as Record<string, unknown>)?.body;
-        if (body) {
-          if (typeof body === 'string') assistantContent = body;
-          else if (typeof body === 'object') {
-            const maybeObj = body as { content?: unknown } | Array<{ content?: unknown }>;
-            if (!Array.isArray(maybeObj) && typeof maybeObj.content === 'string') {
-              assistantContent = maybeObj.content;
-            } else if (Array.isArray(maybeObj) && maybeObj.length) {
-              const first = maybeObj[0];
-              if (first && typeof first.content === 'string') assistantContent = first.content;
-            }
-            // body 내부에 assistant_message 형태가 있을 수도 있음
-            if (!assistantContent && !Array.isArray(maybeObj)) {
-              const maybeAssistantMsg = (maybeObj as { assistant_message?: { content?: unknown } }).assistant_message;
-              if (maybeAssistantMsg && typeof maybeAssistantMsg.content === 'string') {
-                assistantContent = maybeAssistantMsg.content;
-              }
-            }
-          }
-        }
-        if (!assistantContent) {
-          const topAssistant = (replyData as { assistant_message?: { content?: unknown } }).assistant_message;
-          if (topAssistant && typeof topAssistant.content === 'string') {
-            assistantContent = topAssistant.content;
-          }
-        }
-        if (!assistantContent) {
-          if (typeof replyData.content === 'string') assistantContent = replyData.content;
-          else if (typeof replyData.reply === 'string') assistantContent = replyData.reply;
+      let assistantAttachments: ChatAttachment[] | undefined;
+      const assistantRaw = payload.assistant || payload.assistant_message || payload.reply || payload.response;
+      if (assistantRaw) {
+        if (typeof assistantRaw === 'string') assistantContent = assistantRaw; else if (typeof assistantRaw.content === 'string') assistantContent = assistantRaw.content;
+        const atts = assistantRaw.attachments || assistantRaw.media || assistantRaw.images;
+        if (Array.isArray(atts)) {
+          assistantAttachments = atts.map((a: unknown) => {
+            if (!a) return null;
+            if (typeof a !== 'object') return null;
+            const obj = a as Record<string, unknown>;
+            const url = typeof obj.url === 'string' ? obj.url : (typeof obj.src === 'string' ? obj.src : '');
+            if (!url) return null;
+            return {
+              media_id: (obj.media_id || obj.mediaId || obj.id) as string | undefined,
+              url,
+              width: typeof obj.width === 'number' ? obj.width : undefined,
+              height: typeof obj.height === 'number' ? obj.height : undefined,
+              content_type: (obj.content_type || obj.mime) as string | undefined,
+            } as ChatAttachment;
+          }).filter((x: ChatAttachment | null): x is ChatAttachment => !!x);
         }
       }
-      if (!assistantContent) assistantContent = JSON.stringify(replyData);
-      setMessages(prev => [...prev, { role:'assistant', content: assistantContent, ts: Date.now() }]);
-      if (typeof window !== 'undefined' && currentSession) {
-        window.dispatchEvent(new CustomEvent('chat-session-updated', { detail: { sessionId: currentSession, newlyCreated } }));
-      }
-      // 최신 상태 동기화를 위해 히스토리 재로드 (첨부 실제 URL 반영)
-      if (currentSession) {
-        setTimeout(() => { void loadHistory(currentSession!); }, 150);
-      }
-    } catch (e: unknown) {
-      if (e instanceof Error) setError(e.message); else setError('에러 발생');
+      if (!assistantContent) assistantContent = (payload.content || payload.reply) as string | undefined;
+      if (!assistantContent) assistantContent = JSON.stringify(payload);
+      const finalAssistant: ChatMessage = { role:'assistant', content: assistantContent, ts: Date.now(), attachments: assistantAttachments };
+      setMessages(prev => [...prev, finalAssistant]);
+      window.dispatchEvent(new CustomEvent('chat-session-updated', { detail: { sessionId: currentSession, newlyCreated } }));
+    } catch (e) {
+      if (e instanceof Error) setError(e.message); else setError('전송 오류');
+      // rollback input so user can retry
       setInput(prev => prev || originalInput);
-      lastSendRef.current = 0;
+      lastSendRef.current = 0; // allow retry immediately
     } finally {
       setSending(false);
     }
-  }, [input, attachments, sessionId, user, sessionStorageKey, isValidSessionId, uploadAttachments, loadHistory]);
+  }, [input, attachments, sessionId, user, isValidSessionId]);
 
   // 자동 스크롤
   const bottomRef = useRef<HTMLDivElement | null>(null);
