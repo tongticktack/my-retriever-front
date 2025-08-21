@@ -3,18 +3,20 @@
 import { useMemo } from 'react';
 import type { LostItem, RepresentativeMarker } from '@/pages/map/types';
 
+// 필터링할 '이미지 없음' URL을 상수로 정의합니다.
+const NO_IMAGE_URL = 'https://www.lost112.go.kr/lostnfs/images/sub/img04_no_img.gif';
+
 export const useGroupedMarkers = (items: LostItem[]): RepresentativeMarker[] => {
   const representativeMarkers = useMemo((): RepresentativeMarker[] => {
-    // 아이템이 없으면 빈 배열을 반환합니다.
     if (!items || items.length === 0) return [];
 
-    // 위도와 경도를 키로 사용하여 아이템을 그룹화할 객체입니다.
+    // 1. storagePlace를 기준으로 아이템을 그룹화합니다.
     const groups: { [key: string]: LostItem[] } = {};
     
     items.forEach(item => {
-      // 위도, 경도 값이 유효한 숫자인지 확인합니다.
-      if (typeof item.lat === 'number' && typeof item.lng === 'number') {
-        const key = `${item.lat},${item.lng}`;
+      // storagePlace가 있고, 좌표값이 유효한 아이템만 그룹화 대상으로 삼습니다.
+      if (item.storagePlace && typeof item.lat === 'number' && typeof item.lng === 'number') {
+        const key = item.storagePlace;
         if (!groups[key]) {
           groups[key] = [];
         }
@@ -22,19 +24,33 @@ export const useGroupedMarkers = (items: LostItem[]): RepresentativeMarker[] => 
       }
     });
 
-    // 그룹화된 객체를 지도에 표시할 마커 배열 형태로 변환합니다.
-    return Object.entries(groups).map(([key, groupItems]) => {
-      const [lat, lng] = key.split(',').map(Number);
+    // 2. 그룹화된 데이터를 처리하여 유효한 마커만 남깁니다.
+    const processedMarkers = Object.entries(groups).map(([key, groupItems]) => {
+      // 2-1. 각 그룹 내에서 유효한 사진을 가진 아이템만 필터링합니다.
+      const validPhotoItems = groupItems.filter(item => 
+        item.photo && item.photo !== NO_IMAGE_URL
+      );
+
+      // 2-2. 필터링 후 아이템이 하나도 남지 않으면, 이 마커는 표시하지 않도록 null을 반환합니다.
+      if (validPhotoItems.length === 0) {
+        return null;
+      }
+
+      // 2-3. 유효한 아이템이 있는 경우, 마커 데이터를 생성합니다.
+      // 대표 좌표는 그룹의 첫 번째 아이템의 좌표를 사용합니다.
+      const representativeItem = validPhotoItems[0];
       return {
-        lat,
-        lng,
-        items: groupItems,
-        // 그룹 ID는 여러 아이템이 있을 경우 'group-' 접두사를 붙이고, 하나만 있을 경우 해당 아이템의 ID를 사용합니다.
-        id: groupItems.length > 1 ? `group-${key}` : groupItems[0].id,
-        // 그룹의 대표 보관 장소는 첫 번째 아이템의 보관 장소로 설정합니다.
-        storagePlace: groupItems[0].storagePlace,
+        lat: representativeItem.lat,
+        lng: representativeItem.lng,
+        items: validPhotoItems, // 사진이 있는 아이템 목록만 포함합니다.
+        id: `group-${key}`, // storagePlace를 기반으로 고유 ID 생성
+        storagePlace: key, // key 자체가 storagePlace 입니다.
       };
     });
+
+    // 3. null로 처리된 (비어있는) 마커 그룹을 최종 결과에서 제거합니다.
+    return processedMarkers.filter(Boolean) as RepresentativeMarker[];
+
   }, [items]);
 
   return representativeMarkers;
