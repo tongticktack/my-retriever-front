@@ -1,10 +1,12 @@
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
 
 export default function MyPage() {
   const [currentPage, setCurrentPage] = useState<number>(6);
+  const router = useRouter();
   const totalPages = 10;
 
   return (
@@ -84,7 +86,7 @@ export default function MyPage() {
             </div>
           </section>
 
-          <button className={styles.floatingButton} type="button">
+          <button className={styles.floatingButton} type="button" onClick={() => router.push('/my/register')}>
             <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
             <span>분실물 등록</span>
           </button>
