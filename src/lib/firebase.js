@@ -42,5 +42,6 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const analytics = typeof window !== "undefined" && firebaseConfig.measurementId ? getAnalytics(app) : null;
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
-export { analytics, db, auth };
+export { analytics, db, auth, storage };
