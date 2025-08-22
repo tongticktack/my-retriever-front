@@ -1,11 +1,17 @@
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 export default function MyPage() {
-  const [currentPage, setCurrentPage] = useState<number>(6);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const totalPages = 1; // 여길 db에서 받아와야 함, 일단 설정 값
+
+  const [rows, setRows] = useState<Array<{ major: string; minor: string; date: string; place: string }>>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   
   const chunkSize = 10;
@@ -14,6 +20,69 @@ export default function MyPage() {
   const endPage = Math.min(startPage + chunkSize - 1, totalPages);
   const prevChunkStart = Math.max(1, startPage - chunkSize);
   const nextChunkStart = Math.min(totalPages, startPage + chunkSize);
+
+  // helper: try many possible keys to extract a value from the extracted object
+  const pick = (raw: any, keys: string[]) => {
+    if (raw == null) return '';
+    if (typeof raw === 'string') return raw;
+    if (Array.isArray(raw)) {
+      // if array of objects or strings, stringify
+      const first = raw[0];
+      if (typeof first === 'string') return raw.join(', ');
+      if (first && typeof first === 'object') return raw.map((r: any) => {
+        return (r.text || r.content || Object.values(r).join(' '))
+      }).join('; ');
+      return String(raw);
+    }
+    if (typeof raw === 'object') {
+      for (const k of keys) {
+        if (k in raw && raw[k] != null) return String(raw[k]);
+      }
+      // common nested fields
+      if ('text' in raw) return String(raw.text);
+      if ('content' in raw) return String(raw.content);
+      // fallback to joining primitive values
+      try {
+        return Object.entries(raw).map(([k, v]) => `${k}: ${String(v)}`).join('; ');
+      } catch (e) {
+        return String(raw);
+      }
+    }
+    return String(raw);
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const q = query(collection(db, 'lost_items'), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        if (!mounted) return;
+        const items = snap.docs.map((d) => {
+          const doc = d.data();
+          const raw = doc.extracted;
+
+          const major = pick(raw, ['majorCategory','category','대분류','main','type','kind','label']);
+          const minor = pick(raw, ['minorCategory','subcategory','소분류','sub','subtype']);
+          const date = pick(raw, ['lostDate','date','dateString','분실일자','foundDate']);
+          const place = pick(raw, ['lostPlace','place','location','장소','where']);
+
+          return { major, minor, date, place };
+        });
+        setRows(items);
+      } catch (e) {
+        console.error('failed to fetch lost_items', e);
+        setError('데이터를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <main className={styles.main}>
@@ -28,12 +97,11 @@ export default function MyPage() {
             <table className={styles.table}>
               <thead>
                 <tr className={styles.tableHeaderRow}>
-                  <th>관리번호</th>
-                  <th>습득물명</th>
-                  <th>습득 일자</th>
-                  <th>습득 장소</th>
-                  <th>분실자명</th>
-                  <th>보관장소</th>
+                  <th>인덱스</th>
+                  <th>분실물 대분류</th>
+                  <th>분실물 소분류</th>
+                  <th>분실 일자</th>
+                  <th>분실 장소</th>
                 </tr>
               </thead>
 
