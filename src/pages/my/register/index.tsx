@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./register.module.css";
 import { categories} from "@/components/map/category/categoryData";
 import { useRef, useEffect } from "react";
 import { db, storage, auth } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes } from "firebase/storage";
 
 export default function RegisterPage() {
@@ -29,12 +30,42 @@ export default function RegisterPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showMissing, setShowMissing] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
       previews.forEach((p) => URL.revokeObjectURL(p));
     };
   }, [previews]);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const { id } = router.query;
+    if (!id) return;
+    const load = async () => {
+      try {
+        const userId = auth?.currentUser?.uid || null;
+        if (!userId) return;
+        const docRef = doc(db, "lost_items", userId, "items", String(id));
+        const snap = await getDoc(docRef);
+        if (!snap.exists()) return;
+        const data: any = snap.data();
+        const ex = data.extracted || {};
+        setMainCategory(ex.category || "");
+        setSubCategory(ex.subcategory || "");
+        setPlace(ex.region || "");
+        setDate(ex.lost_date || "");
+        setItemName(data.item_name || "");
+        setNote(data.note || "");
+        // media_ids exist but we won't load previews from storage for now
+        setEditId(String(id));
+      } catch (err) {
+        console.error('failed to load item for edit', err);
+      }
+    };
+    load();
+  }, [router.query]);
 
   function handleFiles(files: FileList | File[]) {
     // revoke old preview URLs
@@ -81,7 +112,7 @@ export default function RegisterPage() {
 
       const userId = auth?.currentUser?.uid || null;
 
-      // Store each registration under `lost_items/{userId}/items/{doc}`
+      // Store or update registration under `lost_items/{userId}/items/{doc}`
       if (userId) {
         const itemsCol = collection(db, "lost_items", userId, "items");
         await addDoc(itemsCol, {
@@ -340,20 +371,20 @@ export default function RegisterPage() {
           <div className={styles.requiredNote}>사진을 제외한 모든 항목을 작성해야 합니다.</div>
           <div className={styles.footer}>
             <button className={styles.submit} type="button" disabled={saving} onClick={handleRegisterClick}>
-              {saving ? "저장중..." : "등록"}
+              {saving ? "저장중..." : (editId ? "수정" : "등록")}
             </button>
           </div>
         </form>
       </Panel>
 
   {/* floating registration button removed per request */}
-      {showSuccess && (
+  {showSuccess && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <p className={styles.modalText}>등록이 완료되었어요!</p>
             <button
               className={styles.modalClose}
-              onClick={() => setShowSuccess(false)}
+      onClick={() => { setShowSuccess(false); router.push('/my'); }}
             >
               확인
             </button>
