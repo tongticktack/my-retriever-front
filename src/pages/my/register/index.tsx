@@ -5,7 +5,7 @@ import styles from "./register.module.css";
 import { categories} from "@/components/map/category/categoryData";
 import { useRef, useEffect } from "react";
 import { db, storage, auth } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes } from "firebase/storage";
 
 export default function RegisterPage() {
@@ -81,20 +81,46 @@ export default function RegisterPage() {
       }
 
       const userId = auth?.currentUser?.uid || null;
-      await addDoc(collection(db, "lost_items"), {
-        user_id: userId,
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-        extracted: {
-          category: mainCategory,
-          lost_date: date,
-          region: place,
-          subcategory: subCategory,
-        },
-        media_ids: mediaIds,
-        item_name: itemName,
-        note: note,
-      });
+
+      // Store each registration under `lost_items/{userId}/items/{doc}`
+      if (userId) {
+        const userDocRef = doc(db, "lost_items", userId);
+        const snap = await getDoc(userDocRef);
+        if (!snap.exists()) {
+          await setDoc(userDocRef, { user_id: userId });
+        }
+
+        const itemsCol = collection(db, "lost_items", userId, "items");
+        await addDoc(itemsCol, {
+          extracted: {
+            category: mainCategory,
+            lost_date: date,
+            region: place,
+            subcategory: subCategory,
+          },
+          media_ids: mediaIds,
+          item_name: itemName,
+          note: note,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+        });
+      } else {
+        // Fallback: anonymous users get top-level doc
+        await addDoc(collection(db, "lost_items"), {
+          user_id: null,
+          extracted: {
+            category: mainCategory,
+            lost_date: date,
+            region: place,
+            subcategory: subCategory,
+          },
+          media_ids: mediaIds,
+          item_name: itemName,
+          note: note,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+        });
+      }
 
       setShowSuccess(true);
       setPlace("");
