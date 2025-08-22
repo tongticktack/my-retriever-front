@@ -8,10 +8,10 @@ import { onAuthStateChanged, User } from "firebase/auth";
 
 type TableRow = {
   id: string;
-  major: string; // extracted.category
-  minor: string; // extracted.subcategory
-  date: string;  // extracted.lost_date (그대로 문자열로 표시)
-  place: string; // extracted.region
+  major: string; // # extracted.category
+  minor: string; // # extracted.subcategory
+  date: string;  // # extracted.lost_date (그대로 문자열로 표시)
+  place: string; // # extracted.region
 };
 
 
@@ -23,8 +23,9 @@ export default function MyPage() {
   const [rows, setRows] = useState<TableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  // 페이지 번호 묶음 계산
+  // # 페이지 번호 묶음 계산
   const chunkSize = 10;
   const chunkIndex = Math.floor((currentPage - 1) / chunkSize);
   const startPage = chunkIndex * chunkSize + 1;
@@ -36,13 +37,14 @@ export default function MyPage() {
   useEffect(() => {
     let mounted = true;
     const unsub = onAuthStateChanged(auth, (currentUser: User | null) => {
+      setUser(currentUser);
       (async () => {
         if (!mounted) return;
         setLoading(true);
         setError(null);
 
         if (!currentUser) {
-          // not logged in / not a member
+          // # 미가입 사용자일 때
           setRows([]);
           setTotalPages(1);
           setError('회원이 아니라서 조회할 수 없어요 !');
@@ -68,6 +70,7 @@ export default function MyPage() {
           });
 
           if (!mounted) return;
+          // # 가입은 했지만 등록 기록이 없는 회원일 때
           setRows(items);
           setTotalPages(Math.max(1, Math.ceil(items.length / PAGE_SIZE)));
           if (snap.size === 0) {
@@ -102,6 +105,14 @@ export default function MyPage() {
 
         <div className={styles.container}>
           <section className={styles.tableWrap}>
+            {(error && !loading) || (!loading && !error && paged.length === 0) ? (
+              <div className={styles.tableOverlay}>
+                <div className={styles.messageBox}>
+                  <img src="/Smile.svg" alt="smile" />
+                  <div>{error ?? '데이터가 없습니다'}</div>
+                </div>
+              </div>
+            ) : null}
             <table className={styles.table}>
               <thead>
                 <tr className={styles.tableHeaderRow}>
@@ -120,18 +131,6 @@ export default function MyPage() {
                   </tr>
                 )}
 
-                {error && !loading && (
-                  <tr className={styles.emptyRow}>
-                    <td colSpan={5} className={styles.emptyCell}>{error}</td>
-                  </tr>
-                )}
-
-                {!loading && !error && paged.length === 0 && (
-                  <tr className={styles.emptyRow}>
-                    <td colSpan={5} className={styles.emptyCell}>데이터가 없습니다</td>
-                  </tr>
-                )}
-
                 {!loading && !error && paged.map((r, i) => {
                   const index = (currentPage - 1) * PAGE_SIZE + i + 1;
                   return (
@@ -147,42 +146,44 @@ export default function MyPage() {
               </tbody>
             </table>
 
-            <div className={styles.pagination}>
-              <button
-                className={styles.prevArrow}
-                aria-label="이전 묶음"
-                onClick={() => setCurrentPage(prevChunkStart)}
-                type="button"
-                disabled={startPage === 1}
-              >
-                ‹
-              </button>
+            {!((error && !loading) || (!loading && !error && paged.length === 0)) && (
+              <div className={styles.pagination}>
+                <button
+                  className={styles.prevArrow}
+                  aria-label="이전 묶음"
+                  onClick={() => setCurrentPage(prevChunkStart)}
+                  type="button"
+                  disabled={startPage === 1}
+                >
+                  ‹
+                </button>
 
-              <div className={styles.pageNumbers} role="navigation" aria-label="페이지 네비게이션">
-                {Array.from({ length: Math.max(0, endPage - startPage + 1) }, (_, i) => startPage + i).map((p) => (
-                  <button
-                    key={p}
-                    className={p === currentPage ? styles.current : undefined}
-                    onClick={() => setCurrentPage(p)}
-                    aria-current={p === currentPage ? "page" : undefined}
-                    aria-label={`페이지 ${p}`}
-                    type="button"
-                  >
-                    {p}
-                  </button>
-                ))}
+                <div className={styles.pageNumbers} role="navigation" aria-label="페이지 네비게이션">
+                  {Array.from({ length: Math.max(0, endPage - startPage + 1) }, (_, i) => startPage + i).map((p) => (
+                    <button
+                      key={p}
+                      className={p === currentPage ? styles.current : undefined}
+                      onClick={() => setCurrentPage(p)}
+                      aria-current={p === currentPage ? "page" : undefined}
+                      aria-label={`페이지 ${p}`}
+                      type="button"
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  className={styles.nextArrow}
+                  aria-label="다음 묶음"
+                  onClick={() => setCurrentPage(nextChunkStart)}
+                  type="button"
+                  disabled={endPage === totalPages}
+                >
+                  ›
+                </button>
               </div>
-
-              <button
-                className={styles.nextArrow}
-                aria-label="다음 묶음"
-                onClick={() => setCurrentPage(nextChunkStart)}
-                type="button"
-                disabled={endPage === totalPages}
-              >
-                ›
-              </button>
-            </div>
+            )}
           </section>
 
           <button className={styles.floatingButton} type="button">
