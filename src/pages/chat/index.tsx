@@ -314,8 +314,7 @@ export default function ChatPage() {
       const finalAssistant: ChatMessage = { role:'assistant', content: assistantContent, ts: Date.now(), attachments: assistantAttachments };
       setMessages(prev => {
         const next = [...prev, finalAssistant];
-        if (matches && matches.length) {
-          // 간단한 텍스트 content (렌더 단계에서 구조화)
+        if (matches && matches.length && !prev.some(m => m.role === 'matches')) {
           next.push({ role:'matches', content: 'matches', ts: Date.now()+1, meta: { matches } });
         }
         return next;
@@ -341,6 +340,32 @@ export default function ChatPage() {
   const formatTime = (ts:number) => new Date(ts).toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit', hour12:false });
 
   const handleSend = () => { if (!sending) void sendMessage(); };
+
+  // Lost112 상세 POST (ATC_ID, FD_SN=1) 전송 helper
+  const openLost112Detail = useCallback((atcId: string) => {
+    if (!atcId) return;
+    try {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      // TODO: 필요 시 정확한 상세조회 endpoint 로 교체
+  form.action = 'https://www.lost112.go.kr/find/findDetail.do';
+      form.target = '_blank';
+      const f1 = document.createElement('input');
+      f1.type = 'hidden';
+      f1.name = 'ATC_ID';
+      f1.value = atcId;
+      const f2 = document.createElement('input');
+      f2.type = 'hidden';
+      f2.name = 'FD_SN';
+      f2.value = '1';
+      form.appendChild(f1);
+      form.appendChild(f2);
+      document.body.appendChild(form);
+      form.submit();
+      // 정리
+      setTimeout(() => { try { form.remove(); } catch {} }, 3000);
+    } catch {}
+  }, []);
 
   return (
     <>
@@ -400,21 +425,28 @@ export default function ChatPage() {
                     const list = m.meta?.matches || [];
                     acc.elements.push(
                       <div key={m.ts + '-' + i} className={`${styles.msgGroup} ${styles.msgGroupAssistant}`}>
-                        <div className={styles.avatarOverlap}>
-                          <Image src="/loosyChatBoxIcon.svg" alt="assistant" width={44} height={44} className={styles.avatar} />
-                        </div>
                         <div className={styles.msgStack}>
-                          <div className={`${styles.bubble} ${styles.bubbleAssistant} ${styles.bubbleWithAvatar}`} style={{padding:'12px 16px'}}>
+                          <div className={`${styles.bubble} ${styles.bubbleAssistant}`} style={{padding:'12px 16px'}}>
                             <div style={{fontWeight:600, marginBottom:6}}>유사한 습득물 매칭 결과</div>
                             <ul style={{listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:8}}>
                               {list.map((item, idx2) => {
                                 const title = item.itemName || item.itemCategory || item.atcId || '항목';
-                                const href = item.atcId ? `https://www.lost112.go.kr/web/board/F/L/${encodeURIComponent(item.atcId)}` : (item.imageUrl || '#');
+                                const atcId = item.atcId || '';
                                 return (
                                   <li key={idx2} style={{border:'1px solid rgba(255,255,255,0.15)', borderRadius:10, padding:8, background:'rgba(255,255,255,0.05)'}}>
-                                    <a href={href} target="_blank" rel="noopener noreferrer" style={{color:'#fff', textDecoration:'none', fontWeight:500}}>
-                                      {title}
-                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => openLost112Detail(atcId)}
+                                      style={{
+                                        all: 'unset',
+                                        cursor: atcId ? 'pointer' : 'default',
+                                        color:'#fff',
+                                        fontWeight:500,
+                                        display:'inline-block'
+                                      }}
+                                      aria-label={atcId ? `${title} 상세 (새 탭)` : title}
+                                      disabled={!atcId}
+                                    >{title}</button>
                                     <div style={{fontSize:'0.65rem', opacity:.85, marginTop:4, lineHeight:1.4}}>
                                       {item.itemCategory && <span>{item.itemCategory}</span>}{item.itemCategory && (item.foundDate || item.storagePlace) && ' · '}
                                       {item.foundDate && <span>{item.foundDate}</span>}{item.foundDate && item.storagePlace && ' · '}
@@ -494,7 +526,7 @@ export default function ChatPage() {
                   attachments={attachments}
                   onChangeAttachments={setAttachments}
                   uploading={uploading}
-                  placeholder={user ? '나 오늘 오후 1시쯤 성균관대 근처에서 파란색 지갑을 잃어버렸어.' : '나 오늘 오후 1시쯤 성균관대 근처에서 파란색 지갑을 잃어버렸어.'}
+                  placeholder={user ? '나 오늘 성균관대역에서 파란색 지갑을 잃어버렸어.' : '나 오늘 오후 1시쯤 성균관대 근처에서 파란색 지갑을 잃어버렸어.'}
                 />
                 </div>
                 <div style={{ fontSize: '.65rem', color:'#9ca3af', marginTop:'4px' }}>
