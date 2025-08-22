@@ -21,7 +21,6 @@
   font-size: 20px;
   font-family: "ONEMobile", sans-serif;
   font-weight: 400;
-  /* visible shadow to emphasize the popup (pre-image design) */
   box-shadow: 0 20px 40px rgba(79,71,57,0.16);
   border: 1px solid rgba(79,71,57,0.08);
 }
@@ -43,7 +42,7 @@
 .popoverBtn { 
   background: transparent; 
   border: 1px solid #ddd; 
-  padding:8px 10px; 
+  padding:10px 12px; 
   border-radius: 9999px; 
   cursor:pointer;
   font-size: 17px;
@@ -53,7 +52,7 @@
   background: #4F4739; 
   color:#fff; 
   border:none; 
-  padding:8px 10px; 
+  padding:10px 12px; 
   border-radius: 9999px; 
   cursor:pointer;
   font-size: 17px;
@@ -113,11 +112,23 @@
 .noteText { color: #4F4739; font-size: 0.95rem; flex: 1; }
 
 
-.infoBox { background: #fff9f2; padding: 1rem; border-radius: 10px; border: 1px solid rgba(79,71,57,0.04); display:flex; flex-direction: column; gap: 0.75rem; }
-.mediaColumn { display: none; }
-.actions { display:flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem; }
+.infoBox { 
+  background: #fff9f2; 
+  padding: 2rem; 
+  border-radius: 10px; 
+  border: 1px solid rgba(79,71,57,0.04); 
+  display:flex; 
+  flex-direction: column; 
+  gap: 0.75rem; 
+}
+
+.mediaColumn { 
+  display: none; 
+}
+.actions { 
+  display:flex; 
+  gap: 0.75rem; 
+  justify-content: 
+  flex-end; 
+  margin-top: 0.5rem; }
 .loading, .error { text-align:center; color:#6b5f4e; padding: 1rem 0; }
-
-
-/* .popoverBtn { background: transparent; border: 1px solid rgba(79,71,57,0.12); padding:8px 12px; border-radius: 9999px; cursor:pointer; color:#4F4739; }
-.popoverPrimary { background: #4F4739; color:#fff; border:none; padding:8px 12px; border-radius: 9999px; cursor:pointer; } */
