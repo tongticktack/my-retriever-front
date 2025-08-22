@@ -58,8 +58,8 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  font-family: "ONEMobile", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, sans-serif;
+  /* Use bundled ONEMobile as the single app font with a generic fallback */
+  font-family: "ONEMobile", sans-serif;
   font-weight: 300;
 }
 
