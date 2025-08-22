@@ -53,6 +53,8 @@
 .tableWrap {
   /* increase top padding to create extra gap from header */
   padding: 1.25rem 1rem 3.5rem;
+  position: relative; /* for overlay centering */
+  min-height: 420px;
 }
 
 .table {
@@ -83,6 +85,56 @@
 .emptyCell {
   background: transparent;
 }
+
+/* Message cell used for the two user-facing messages (not a member / no registered items) */
+.messageCell {
+  background: #fff;
+  color: #4F4739;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-weight: 400;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+}
+.messageCell img {
+  width: 56px;
+  height: 56px;
+  display: block;
+}
+
+/* Overlay that centers a message over the table area */
+.tableOverlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* allow table interactions if needed */
+  z-index: 10;
+}
+
+.messageBox {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem; /* reduce spacing between icon and message */
+  background: transparent;
+  color: #4F4739;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-weight: 400;
+  font-size: 1.8rem; /* slightly smaller message text */
+  padding: 1rem 1.5rem;
+}
+.messageBox img { width: 168px; height: 168px; }
 
 .pagination {
   display: flex;
