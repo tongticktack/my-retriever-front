@@ -214,7 +214,12 @@ export default function ChatPage() {
       let currentSession = sessionId;
       let newlyCreated = false;
       if (!isValidSessionId(currentSession)) {
-        const sessionResp = await fetch(`${API_BASE}/chat/session`, { method:'POST', headers: authHeaders });
+        const sessionCreateHeaders: Record<string,string> = { 'Content-Type': 'application/json', ...authHeaders };
+        const sessionResp = await fetch(`${API_BASE}/chat/session`, {
+          method:'POST',
+          headers: sessionCreateHeaders,
+          body: JSON.stringify({ user_id: user ? user.uid : null })
+        });
         if (!sessionResp.ok) throw new Error('세션 생성 실패');
         const sData = await sessionResp.json();
         currentSession = sData.session_id || sData.id;
