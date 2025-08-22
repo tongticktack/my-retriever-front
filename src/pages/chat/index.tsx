@@ -21,7 +21,28 @@ type ChatAttachment = {
   // local optimistic flag (object URL) so we can revoke later if needed
   __localUrl?: boolean;
 };
-type ChatMessage = { role: 'user' | 'assistant'; content: string; ts: number; attachments?: ChatAttachment[] };
+interface MatchItem {
+  atcId?: string;
+  collection?: string;
+  itemCategory?: string;
+  itemName?: string;
+  foundDate?: string;
+  storagePlace?: string;
+  imageUrl?: string;
+  score?: number;
+  [k: string]: unknown;
+}
+type ChatMessage = { role: 'user' | 'assistant' | 'matches'; content: string; ts: number; attachments?: ChatAttachment[]; meta?: { matches?: MatchItem[] } };
+
+interface SendResponseShape {
+  assistant?: unknown;
+  assistant_message?: unknown;
+  reply?: unknown;
+  response?: unknown;
+  content?: string;
+  matches?: MatchItem[]; // top-level matches (명시됨)
+  [k: string]: unknown;
+}
 
 const API_BASE = process.env.NEXT_PUBLIC_CHAT_API_BASE || 'http://localhost:8000';
 
@@ -245,15 +266,20 @@ export default function ChatPage() {
       const body = { session_id: currentSession, content: originalInput, media_ids: mediaIds };
       const sendResp = await fetch(`${API_BASE}/chat/send`, { method:'POST', headers: sendHeaders, body: JSON.stringify(body) });
       if (!sendResp.ok) throw new Error('전송 실패');
-      const payload = await sendResp.json();
+  const payload: SendResponseShape = await sendResp.json();
       // try common shapes
-      let assistantContent: string | undefined;
-      let assistantAttachments: ChatAttachment[] | undefined;
-      const assistantRaw = payload.assistant || payload.assistant_message || payload.reply || payload.response;
+  let assistantContent: string | undefined;
+  let assistantAttachments: ChatAttachment[] | undefined;
+  let matches: MatchItem[] | undefined;
+  const getKey = (o: unknown, k: string): unknown => (o && typeof o === 'object' && k in (o as Record<string, unknown>)) ? (o as Record<string, unknown>)[k] : undefined;
+  const assistantRaw: unknown = getKey(payload, 'assistant') || getKey(payload, 'assistant_message') || getKey(payload, 'reply') || getKey(payload, 'response');
       if (assistantRaw) {
-        if (typeof assistantRaw === 'string') assistantContent = assistantRaw; else if (typeof assistantRaw.content === 'string') assistantContent = assistantRaw.content;
-        const atts = assistantRaw.attachments || assistantRaw.media || assistantRaw.images;
-        if (Array.isArray(atts)) {
+        if (typeof assistantRaw === 'string') assistantContent = assistantRaw;
+        else if (typeof assistantRaw === 'object' && assistantRaw !== null) {
+          const ar = assistantRaw as Record<string, unknown>;
+          if (typeof ar.content === 'string') assistantContent = ar.content;
+          const atts = (ar.attachments || ar.media || ar.images) as unknown;
+          if (Array.isArray(atts)) {
           assistantAttachments = atts.map((a: unknown) => {
             if (!a) return null;
             if (typeof a !== 'object') return null;
@@ -268,12 +294,32 @@ export default function ChatPage() {
               content_type: (obj.content_type || obj.mime) as string | undefined,
             } as ChatAttachment;
           }).filter((x: ChatAttachment | null): x is ChatAttachment => !!x);
+          }
         }
       }
+      // matches 최상위 또는 assistantRaw.matches 가능
+  // 최상위(payload.matches)에 존재하는 경우 우선
+      const topMatches = getKey(payload, 'matches');
+      if (Array.isArray(topMatches)) {
+        matches = topMatches as MatchItem[];
+      } else if (assistantRaw && typeof assistantRaw === 'object') {
+        const ar = assistantRaw as Record<string, unknown>;
+        if (Array.isArray(ar.matches)) matches = ar.matches as MatchItem[];
+        else if (Array.isArray(ar.similar)) matches = ar.similar as MatchItem[];
+        else if (Array.isArray(ar.items)) matches = ar.items as MatchItem[];
+      }
+      if (Array.isArray(matches) && matches.length === 0) matches = undefined;
       if (!assistantContent) assistantContent = (payload.content || payload.reply) as string | undefined;
       if (!assistantContent) assistantContent = JSON.stringify(payload);
       const finalAssistant: ChatMessage = { role:'assistant', content: assistantContent, ts: Date.now(), attachments: assistantAttachments };
-      setMessages(prev => [...prev, finalAssistant]);
+      setMessages(prev => {
+        const next = [...prev, finalAssistant];
+        if (matches && matches.length) {
+          // 간단한 텍스트 content (렌더 단계에서 구조화)
+          next.push({ role:'matches', content: 'matches', ts: Date.now()+1, meta: { matches } });
+        }
+        return next;
+      });
       window.dispatchEvent(new CustomEvent('chat-session-updated', { detail: { sessionId: currentSession, newlyCreated } }));
     } catch (e) {
       if (e instanceof Error) setError(e.message); else setError('전송 오류');
@@ -349,6 +395,43 @@ export default function ChatPage() {
                   const msgDate = formatDate(m.ts);
                   if (acc.lastDate !== msgDate) {
                     acc.elements.push(<div key={`date-${m.ts}`} className={styles.dateDivider}>{msgDate}</div>);
+                  }
+                  if (m.role === 'matches') {
+                    const list = m.meta?.matches || [];
+                    acc.elements.push(
+                      <div key={m.ts + '-' + i} className={`${styles.msgGroup} ${styles.msgGroupAssistant}`}>
+                        <div className={styles.avatarOverlap}>
+                          <Image src="/loosyChatBoxIcon.svg" alt="assistant" width={44} height={44} className={styles.avatar} />
+                        </div>
+                        <div className={styles.msgStack}>
+                          <div className={`${styles.bubble} ${styles.bubbleAssistant} ${styles.bubbleWithAvatar}`} style={{padding:'12px 16px'}}>
+                            <div style={{fontWeight:600, marginBottom:6}}>유사한 습득물 매칭 결과</div>
+                            <ul style={{listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:8}}>
+                              {list.map((item, idx2) => {
+                                const title = item.itemName || item.itemCategory || item.atcId || '항목';
+                                const href = item.atcId ? `https://www.lost112.go.kr/web/board/F/L/${encodeURIComponent(item.atcId)}` : (item.imageUrl || '#');
+                                return (
+                                  <li key={idx2} style={{border:'1px solid rgba(255,255,255,0.15)', borderRadius:10, padding:8, background:'rgba(255,255,255,0.05)'}}>
+                                    <a href={href} target="_blank" rel="noopener noreferrer" style={{color:'#fff', textDecoration:'none', fontWeight:500}}>
+                                      {title}
+                                    </a>
+                                    <div style={{fontSize:'0.65rem', opacity:.85, marginTop:4, lineHeight:1.4}}>
+                                      {item.itemCategory && <span>{item.itemCategory}</span>}{item.itemCategory && (item.foundDate || item.storagePlace) && ' · '}
+                                      {item.foundDate && <span>{item.foundDate}</span>}{item.foundDate && item.storagePlace && ' · '}
+                                      {item.storagePlace && <span>{item.storagePlace}</span>}
+                                      {typeof item.score === 'number' && <span style={{marginLeft:6}}>({Math.round(item.score)}점)</span>}
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                          <div className={styles.time}>{formatTime(m.ts)}</div>
+                        </div>
+                      </div>
+                    );
+                    acc.lastDate = msgDate;
+                    return acc;
                   }
                   const isUser = m.role === 'user';
                   acc.elements.push(
