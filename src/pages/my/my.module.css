@@ -5,27 +5,29 @@
 }
 
 .header {
-  margin-bottom: 0; /* spacing handled by ::after and searchBar */
-  padding-bottom: 0;
-  text-align: center; /* center the title */
+  /* add breathing room between header and table */
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  text-align: center;
   position: relative;
 }
 
+/* header 밑에 구분선 넣으려고 가상 요소 넣은 것 */
 .header::after {
   content: "";
   display: block;
-  width: 92%; /* slightly smaller than the table */
-  max-width: 1200px;
-  height: 1px;
+  width: 92%;
+  height: 0.5px;
   background: #4F4739;
-  margin: 17px auto 0; /* 17px gap above divider */
+  /* push divider slightly lower so header feels separated from table */
+  margin: 22px auto 0;
 }
 
 .title {
-  font-size: 1.75rem; /* reduced size */
+  font-size: 1.5rem;
   font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
-  font-weight: 600;
-  color: #4F4739; /* darker brown */
+  font-weight: 700;
+  color: #4F4739;
   margin: 0 auto;
 }
 
@@ -42,66 +44,15 @@
   color: #6b7280;
 }
 
-/* New layout for My page */
 .container {
   position: relative;
 }
 
-.searchBar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  justify-content: center;
-  margin: 17px 0 2rem; /* 17px gap below divider */
-}
-
-.filters {
-  background: #fff;
-  border-radius: 999px;
-  padding: 0.6rem 0.8rem;
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-.filterItem {
-  background: transparent;
-  border: none;
-  padding: 0.4rem 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  cursor: pointer;
-}
-
-.filterLabel {
-  font-size: 0.95rem;
-  color: #4b5563;
-  font-weight: 600;
-}
-
-.filterHint {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.searchButton {
-  width: 48px;
-  height: 48px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  cursor: pointer;
-}
+/* filters removed */
 
 .tableWrap {
-  padding: 0 1rem 3.5rem;
+  /* increase top padding to create extra gap from header */
+  padding: 1.25rem 1rem 3.5rem;
 }
 
 .table {
@@ -110,12 +61,22 @@
 }
 
 .tableHeaderRow th {
-  background: #4F4739; /* updated brown header */
+  background: #4F4739;
   color: #fff;
   padding: 0.9rem 1rem;
-  text-align: center; /* center-align header cells */
+  text-align: center; 
   vertical-align: middle;
   font-weight: 700;
+}
+
+.tableDataRow td {
+  padding: 0.9rem 1rem;
+  text-align: center;
+  vertical-align: middle;
+  background: #fff;
+  color: #4F4739;
+  font-weight: 400;
+  border-bottom: 0.1px solid #CBC8C4;
 }
 
 .emptyRow { height: 420px; }
@@ -127,15 +88,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  --pg-gap: 0.75rem;
+  gap: var(--pg-gap);
   margin-top: 2.5rem;
 }
 
 .pageNumbers {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--pg-gap);
   color: #9ca3af;
   font-size: 0.85rem;
+  align-items: center;
 }
 
 .pageNumbers button {
@@ -143,7 +106,11 @@
   border: none;
   color: #9ca3af;
   cursor: pointer;
-  padding: 0.25rem 0.35rem;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 4px;
 }
 
@@ -161,9 +128,27 @@
 .nextArrow {
   background: transparent;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: #4F4739;
   cursor: pointer;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prevArrow {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: #4F4739;
+  cursor: pointer;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .floatingButton {
@@ -173,18 +158,18 @@
   background: #4F4739;
   color: #fff;
   border: none;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 0.8rem;
   border-radius: 999px;
   display: inline-flex;
   gap: 0.6rem;
   align-items: center;
-  box-shadow: 0 6px 20px rgba(79,71,57,0.18);
   cursor: pointer;
 }
 
+.floatingButton:hover { transform: translateY(-1px); }
+
 @media (max-width: 768px) {
-  .filters { padding: 0.5rem; }
-  .filterItem { padding: 0.3rem 0.6rem; }
+  /* filters removed */
   .tableHeaderRow th { padding: 0.6rem 0.6rem; }
   .emptyRow { height: 240px; }
 }

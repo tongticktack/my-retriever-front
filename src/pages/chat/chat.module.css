@@ -108,9 +108,11 @@
   justify-content: flex-start;
   width: 100%;
   padding-bottom: 0.5rem;
-  overflow: hidden; /* contain internal scroll */
+  overflow: hidden;
   min-height: 0;
 }
+
+.chatArea { flex: 1; width: 100%; }
 
 /* Chat area wrapping messages + input */
 .chatArea {
@@ -208,6 +210,8 @@
 
 /* Center input area */
 .inputSection { align-items: center; }
+/* Dedicated outer wrapper for composer centering */
+.composerOuter { width:100%; display:flex; justify-content:center; }
 /* Legacy searchSection removed in new composer layout */
 .searchSection { display:none; }
 
