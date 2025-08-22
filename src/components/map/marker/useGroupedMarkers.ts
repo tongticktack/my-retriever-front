@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import type { LostItem, RepresentativeMarker } from '@/pages/map/types';
 
 // 필터링할 '이미지 없음' URL을 상수로 정의합니다.
-const NO_IMAGE_URL = 'https://www.lost112.go.kr/lostnfs/images/sub/img04_no_img.gif';
-
+const NO_IMAGE_URL1 = 'https://www.lost112.go.kr/lostnfs/images/sub/img04_no_img.gif';
+const NO_IMAGE_URL2 = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif';
 export const useGroupedMarkers = (items: LostItem[]): RepresentativeMarker[] => {
   const representativeMarkers = useMemo((): RepresentativeMarker[] => {
     if (!items || items.length === 0) return [];
@@ -28,7 +28,7 @@ export const useGroupedMarkers = (items: LostItem[]): RepresentativeMarker[] => 
     const processedMarkers = Object.entries(groups).map(([key, groupItems]) => {
       // 2-1. 각 그룹 내에서 유효한 사진을 가진 아이템만 필터링합니다.
       const validPhotoItems = groupItems.filter(item => 
-        item.photo && item.photo !== NO_IMAGE_URL
+        item.photo && item.photo !== NO_IMAGE_URL1 && item.photo !== NO_IMAGE_URL2
       );
 
       // 2-2. 필터링 후 아이템이 하나도 남지 않으면, 이 마커는 표시하지 않도록 null을 반환합니다.
