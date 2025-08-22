@@ -5,7 +5,7 @@ import styles from "./search.module.css";
 import FilterModal from "./search.filter";
 
 export default function SearchPage() {
-  const [currentPage, setCurrentPage] = useState<number>(6);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const totalPages = 42; // 여길 db에서 받아와야 함, 일단 설정 값
 
   // filter modal state
