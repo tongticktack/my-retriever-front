@@ -202,22 +202,6 @@
   border: none;
   font-size: 18px;
 }
-
-/* floating button similar to original page */
-.floatingButton{
-  position: fixed;
-  right: 28px;
-  bottom: 28px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #f5ede7;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 20px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-}
-
 /* success modal */
 .modalOverlay{
   position: fixed;

@@ -369,11 +369,7 @@ export default function RegisterPage() {
         </form>
       </Panel>
 
-      {/* Floating icon to resemble the provided screen (non-functional) */}
-      <button className={styles.floatingButton} type="button" aria-label="분실물 등록">
-        <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
-        <span>분실물 등록</span>
-      </button>
+  {/* floating registration button removed per request */}
       {showSuccess && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
