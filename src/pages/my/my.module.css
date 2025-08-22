@@ -69,6 +69,16 @@
   font-weight: 700;
 }
 
+.tableDataRow td {
+  padding: 0.9rem 1rem;
+  text-align: center;
+  vertical-align: middle;
+  background: #fff;
+  color: #4F4739;
+  font-weight: 400;
+  border-bottom: 0.1px solid #CBC8C4;
+}
+
 .emptyRow { height: 420px; }
 .emptyCell {
   background: transparent;
