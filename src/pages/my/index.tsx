@@ -278,9 +278,7 @@ export default function MyPage() {
   }, []);
 
   const paged = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const [currentPage, setCurrentPage] = useState<number>(6);
   const router = useRouter();
-  const totalPages = 10;
 
   return (
     <main className={styles.main}>
