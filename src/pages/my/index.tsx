@@ -203,6 +203,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
 import { db } from "@/lib/firebase";
@@ -277,6 +278,9 @@ export default function MyPage() {
   }, []);
 
   const paged = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const [currentPage, setCurrentPage] = useState<number>(6);
+  const router = useRouter();
+  const totalPages = 10;
 
   return (
     <main className={styles.main}>
@@ -369,9 +373,8 @@ export default function MyPage() {
               </button>
             </div>
           </section>
-
-          <button className={styles.floatingButton} type="button">
-            <Image src="/pawIcon-white.svg" alt="paw" width={25} height={25} />
+          <button className={styles.floatingButton} type="button" onClick={() => router.push('/my/register')}>
+            <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
             <span>분실물 등록</span>
           </button>
         </div>
