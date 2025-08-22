@@ -1,3 +1,4 @@
+/* src/pages/map/map.module.css */
 .main {
   min-height: 100vh;
   background-color: #faf1e6;
@@ -6,12 +7,9 @@
 
 .header {
   margin-bottom: 1.5rem;
-}
-
-.title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #1f2937;
+  /* 👈 [추가] 헤더 내부 아이템 정렬을 위해 추가 */
+  display: flex;
+  flex-direction: column;
 }
 
 .content {
@@ -19,7 +17,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 260px);
+  height: calc(120vh - 260px); 
+  width: 100%;
 }
 
 .description {
