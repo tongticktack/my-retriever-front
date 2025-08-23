@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useLostItems } from '../map/useLostItems';
-import { categories } from '@/components/map/category/categoryData';
-import styles from './search.module.css';
-import type { LostItem } from '../map/types';
+// src/pages/find/index.tsx
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useLostItems } from '../map/useLostItems'; // useLostItems 훅 경로
+import { categories } from '@/components/map/category/categoryData'; // 카테고리 데이터 경로
+import styles from './search.module.css'; // CSS 모듈 파일
+import type { LostItem } from '../map/types'; // 타입 경로
 
 const PAGE_SIZE = 12;
 const PAGE_CHUNK_SIZE = 10;
@@ -12,6 +14,65 @@ const NO_IMAGE_URLS = [
   'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif',
 ];
 
+// 커스텀 Select 컴포넌트
+const CustomSelect = ({ options, value, onChange, placeholder, disabled = false }: {
+  options: { value: string; label: string; }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+  const selectedOption = options.find(opt => opt.value === value);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleOptionClick = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className={styles.customSelect} ref={selectRef}>
+      <button 
+        className={styles.selectToggle} 
+        onClick={() => !disabled && setIsOpen(!isOpen)} 
+        disabled={disabled}
+      >
+        {selectedOption ? (
+          <span className={styles.selectedText}>{selectedOption.label}</span>
+        ) : (
+          <span className={styles.placeholderText}>{placeholder}</span>
+        )}
+        <span className={styles.chev}>▼</span>
+      </button>
+      {isOpen && (
+        <div className={styles.options}>
+          {options.map(option => (
+            <div
+              key={option.value}
+              className={styles.option}
+              onClick={() => handleOptionClick(option.value)}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 export default function FindItemsPage() {
   const { allItems, loading } = useLostItems();
 
@@ -19,75 +80,83 @@ export default function FindItemsPage() {
   const [mainCategory, setMainCategory] = useState('');
   const [subCategory, setSubCategory] = useState('');
   const [hasPhoto, setHasPhoto] = useState(false);
+  const [sortOrDate, setSortOrDate] = useState('newest');
+  const [selectedDate, setSelectedDate] = useState('');
 
-  // 페이지네이션 상태 관리
+  // 페이지네이션 및 모달 상태
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // 모달 상태 관리
   const [selectedItem, setSelectedItem] = useState<LostItem | null>(null);
 
-  // 필터링된 아이템 목록
-  const filteredItems = useMemo(() => {
-    return allItems.filter(item => {
-      // 사진 유무 필터
-      if (hasPhoto) {
-        if (!item.photo || NO_IMAGE_URLS.includes(item.photo)) {
-          return false;
-        }
-      }
-
-      // 카테고리 필터
+  const processedItems = useMemo(() => {
+    let items = allItems.filter(item => {
+      if (hasPhoto && (!item.photo || NO_IMAGE_URLS.includes(item.photo))) return false;
       if (mainCategory && item.category) {
         const [itemMain, itemSub] = item.category.split(' > ');
-        if (mainCategory !== itemMain) {
-          return false;
-        }
-        if (subCategory && subCategory !== itemSub) {
-          return false;
-        }
+        if (mainCategory !== itemMain) return false;
+        if (subCategory && subCategory !== itemSub) return false;
       }
+      if (sortOrDate === 'date' && selectedDate && item.foundDate !== selectedDate) return false;
       return true;
     });
-  }, [allItems, mainCategory, subCategory, hasPhoto]);
 
-  // 페이지네이션 계산
-  const totalPages = Math.ceil(filteredItems.length / PAGE_SIZE);
-  const paginatedItems = filteredItems.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+    if (sortOrDate !== 'date') {
+      return items.sort((a, b) => {
+        const dateA = new Date(a.foundDate).getTime();
+        const dateB = new Date(b.foundDate).getTime();
+        return sortOrDate === 'newest' ? dateB - dateA : dateA - dateB;
+      });
+    }
+    return items;
+  }, [allItems, mainCategory, subCategory, hasPhoto, selectedDate, sortOrDate]);
 
-  // 10페이지 단위 묶음 계산 로직
+  const totalPages = Math.ceil(processedItems.length / PAGE_SIZE);
+  const paginatedItems = processedItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const chunkIndex = Math.floor((currentPage - 1) / PAGE_CHUNK_SIZE);
   const startPage = chunkIndex * PAGE_CHUNK_SIZE + 1;
   const endPage = Math.min(startPage + PAGE_CHUNK_SIZE - 1, totalPages);
   const prevChunkPage = Math.max(1, startPage - PAGE_CHUNK_SIZE);
   const nextChunkPage = Math.min(totalPages, startPage + PAGE_CHUNK_SIZE);
-
+  
+  const mainCategoryOptions = [{ value: '', label: '대분류 전체' }, ...categories.map(cat => ({ value: cat.main, label: cat.main }))];
+  
   const subCategoryOptions = useMemo(() => {
     if (!mainCategory) return [];
     const selected = categories.find(cat => cat.main === mainCategory);
-    return selected ? ['전체', ...selected.sub] : [];
+    return selected ? [{ value: '', label: '소분류 전체' }, ...selected.sub.map(s => ({ value: s, label: s }))] : [];
   }, [mainCategory]);
 
-  const handleMainCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMainCategory(e.target.value);
+  const sortOptions = [
+    { value: 'newest', label: '최신 순' },
+    { value: 'oldest', label: '오래된 순' },
+    { value: 'date', label: '날짜 선택' },
+  ];
+
+  const resetPage = () => setCurrentPage(1);
+
+  const handleMainCategoryChange = (value: string) => {
+    setMainCategory(value);
     setSubCategory('');
-    setCurrentPage(1);
+    resetPage();
   };
 
-  const handleSubCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSubCategory(e.target.value === '전체' ? '' : e.target.value);
-    setCurrentPage(1);
+  const handleSubCategoryChange = (value: string) => {
+    setSubCategory(value);
+    resetPage();
+  };
+  
+  const handleSortOrDateChange = (value: string) => {
+    setSortOrDate(value);
+    if (value !== 'date') setSelectedDate('');
+    resetPage();
   };
 
-  const handleCardClick = (item: LostItem) => {
-    setSelectedItem(item);
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedDate(e.target.value);
+    resetPage();
   };
 
-  const closeModal = () => {
-    setSelectedItem(null);
-  };
+  const handleCardClick = (item: LostItem) => setSelectedItem(item);
+  const closeModal = () => setSelectedItem(null);
 
   return (
     <main className={styles.main}>
@@ -96,25 +165,34 @@ export default function FindItemsPage() {
           <h1 className={styles.title}>분실물 찾기</h1>
         </div>
 
-        {/* 필터 UI */}
         <div className={styles.filterContainer}>
-          <select className={styles.selectBox} value={mainCategory} onChange={handleMainCategoryChange}>
-            <option value="">대분류 전체</option>
-            {categories.map(cat => (
-              <option key={cat.main} value={cat.main}>{cat.main}</option>
-            ))}
-          </select>
-          <select 
-            className={styles.selectBox} 
-            value={subCategory} 
+          <CustomSelect
+            placeholder="대분류 전체"
+            options={mainCategoryOptions}
+            value={mainCategory}
+            onChange={handleMainCategoryChange}
+          />
+          <CustomSelect
+            placeholder="소분류 전체"
+            options={subCategoryOptions}
+            value={subCategory}
             onChange={handleSubCategoryChange}
             disabled={!mainCategory || subCategoryOptions.length <= 1}
-          >
-            <option value="">소분류 전체</option>
-            {subCategoryOptions.map(sub => (
-              <option key={sub} value={sub}>{sub}</option>
-            ))}
-          </select>
+          />
+          <CustomSelect
+            placeholder="정렬"
+            options={sortOptions}
+            value={sortOrDate}
+            onChange={handleSortOrDateChange}
+          />
+          {sortOrDate === 'date' && (
+            <input
+              type="date"
+              className={styles.dateInput}
+              value={selectedDate}
+              onChange={handleDateChange}
+            />
+          )}
           <div className={styles.checkboxContainer}>
             <input 
               type="checkbox" 
@@ -122,14 +200,13 @@ export default function FindItemsPage() {
               checked={hasPhoto} 
               onChange={(e) => {
                 setHasPhoto(e.target.checked);
-                setCurrentPage(1);
+                resetPage();
               }}
             />
-            <label htmlFor="hasPhoto">사진이 있는 분실물만 보기</label>
+            <label htmlFor="hasPhoto">사진 있는 분실물만 보기</label>
           </div>
         </div>
 
-        {/* 로딩 및 결과 표시 */}
         {loading ? (
           <div className={styles.message}>데이터를 불러오는 중입니다...</div>
         ) : (
@@ -139,13 +216,10 @@ export default function FindItemsPage() {
                 paginatedItems.map(item => (
                   <div key={item.id} className={styles.card} onClick={() => handleCardClick(item)}>
                     <img
-                      src={item.photo && !NO_IMAGE_URLS.includes(item.photo) ? item.photo : 'https://placehold.co/300x200?text=No+Image'}
+                      src={item.photo && !NO_IMAGE_URLS.includes(item.photo) ? item.photo : 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif'}
                       alt={item.name}
                       className={styles.cardImage}
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://placehold.co/300x200?text=No+Image';
-                        e.currentTarget.onerror = null;
-                      }}
+                      onError={(e) => { e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif'; }}
                     />
                     <div className={styles.cardBody}>
                       <p className={styles.itemName}>{item.name}</p>
@@ -160,23 +234,10 @@ export default function FindItemsPage() {
               )}
             </div>
 
-            {/* 페이지네이션 */}
             {totalPages > 1 && (
               <div className={styles.pagination}>
-                <button 
-                  className={styles.arrowButton} 
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  «
-                </button>
-                <button 
-                  className={styles.arrowButton} 
-                  onClick={() => setCurrentPage(prevChunkPage)}
-                  disabled={startPage === 1}
-                >
-                  ‹
-                </button>
+                <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>«</button>
+                <button onClick={() => setCurrentPage(prevChunkPage)} disabled={startPage === 1}>‹</button>
                 <div className={styles.pageNumbers}>
                   {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
                     <button
@@ -188,38 +249,22 @@ export default function FindItemsPage() {
                     </button>
                   ))}
                 </div>
-                <button 
-                  className={styles.arrowButton} 
-                  onClick={() => setCurrentPage(nextChunkPage)}
-                  disabled={endPage === totalPages}
-                >
-                  ›
-                </button>
-                 <button 
-                  className={styles.arrowButton} 
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                >
-                  »
-                </button>
+                <button onClick={() => setCurrentPage(nextChunkPage)} disabled={endPage === totalPages}>›</button>
+                <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>»</button>
               </div>
             )}
           </>
         )}
       </div>
 
-      {/* 상세 정보 모달 */}
       {selectedItem && (
         <div className={styles.modalBackdrop} onClick={closeModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <img
-              src={selectedItem.photo && !NO_IMAGE_URLS.includes(selectedItem.photo) ? selectedItem.photo : 'https://placehold.co/600x400?text=No+Image'}
+              src={selectedItem.photo && !NO_IMAGE_URLS.includes(selectedItem.photo) ? selectedItem.photo : 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif'}
               alt={selectedItem.name}
               className={styles.modalImage}
-              onError={(e) => {
-                e.currentTarget.src = 'https://placehold.co/600x400?text=No+Image';
-                e.currentTarget.onerror = null;
-              }}
+              onError={(e) => { e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif'; }}
             />
             <div className={styles.modalDetails}>
               <h2>{selectedItem.name}</h2>
@@ -227,9 +272,7 @@ export default function FindItemsPage() {
               <p><strong>습득일:</strong> {selectedItem.foundDate}</p>
               <p><strong>보관장소:</strong> {selectedItem.storagePlace}</p>
             </div>
-            <button className={styles.modalCloseButton} onClick={closeModal}>
-              닫기
-            </button>
+            <button className={styles.modalCloseButton} onClick={closeModal}>닫기</button>
           </div>
         </div>
       )}
