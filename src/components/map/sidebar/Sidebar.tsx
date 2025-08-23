@@ -11,12 +11,23 @@ interface SidebarProps {
 
 const Sidebar = ({ items, storagePlace, onClose }: SidebarProps) => {
   const [detailItem, setDetailItem] = useState<LostItem | null>(null);
+  const [isClosing, setIsClosing] = useState(false); // 닫기 애니메이션 상태 추가
 
   useEffect(() => {
+    // items가 변경되면 상세 아이템 뷰를 닫고 목록으로 돌아갑니다.
     setDetailItem(null);
   }, [items]);
 
+  // 닫기 버튼 클릭 시 애니메이션을 먼저 실행하고, 애니메이션이 끝난 후 onClose를 호출합니다.
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 300); // CSS 애니메이션 시간과 동일하게 설정 (0.3s)
+  };
+
   const sortedItems = useMemo(() => {
+    // 최신순으로 아이템을 정렬합니다.
     return [...items].sort((a, b) => new Date(b.foundDate).getTime() - new Date(a.foundDate).getTime());
   }, [items]);
 
