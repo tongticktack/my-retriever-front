@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { useState } from "react";
 import Panel from "@/components/Panel";
 import styles from "./register.module.css";
@@ -84,30 +83,8 @@ export default function RegisterPage() {
 
       // Store each registration under `lost_items/{userId}/items/{doc}`
       if (userId) {
-        const userDocRef = doc(db, "lost_items", userId);
-        const snap = await getDoc(userDocRef);
-        if (!snap.exists()) {
-          await setDoc(userDocRef, { user_id: userId });
-        }
-
         const itemsCol = collection(db, "lost_items", userId, "items");
         await addDoc(itemsCol, {
-          extracted: {
-            category: mainCategory,
-            lost_date: date,
-            region: place,
-            subcategory: subCategory,
-          },
-          media_ids: mediaIds,
-          item_name: itemName,
-          note: note,
-          created_at: serverTimestamp(),
-          updated_at: serverTimestamp(),
-        });
-      } else {
-        // Fallback: anonymous users get top-level doc
-        await addDoc(collection(db, "lost_items"), {
-          user_id: null,
           extracted: {
             category: mainCategory,
             lost_date: date,
