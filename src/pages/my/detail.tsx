@@ -66,12 +66,16 @@ export default function DetailPage({ open, loading, item, onClose }: Props) {
         ) : item ? (
           <div className={styles.content}>
             <header className={styles.header}>
-              <h3>{item.item_name ?? '상세 정보'}</h3>
+              <h3>상세 정보</h3>
             </header>
 
             <section className={styles.infoBox}>
               <div className={styles.leftCol}>
                 <div className={styles.meta}>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaLabel}>분실 물품</span>
+                    <span className={styles.metaValue}>{item.item_name ?? '-'}</span>
+                  </div>
                   <div className={styles.metaRow}>
                     <span className={styles.metaLabel}>분실 장소</span>
                     <span className={styles.metaValue}>{item.extracted?.region ?? '-'}</span>
