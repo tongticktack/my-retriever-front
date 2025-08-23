@@ -1,10 +1,10 @@
 // src/pages/find/index.tsx
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useLostItems } from '../map/useLostItems'; // useLostItems 훅 경로
-import { categories } from '@/components/map/category/categoryData'; // 카테고리 데이터 경로
-import styles from './search.module.css'; // CSS 모듈 파일
-import type { LostItem } from '../map/types'; // 타입 경로
+import { useLostItems } from '../map/useLostItems';
+import { categories } from '@/components/map/category/categoryData';
+import styles from './search.module.css';
+import type { LostItem } from '../map/types';
 
 const PAGE_SIZE = 12;
 const PAGE_CHUNK_SIZE = 10;
@@ -14,7 +14,6 @@ const NO_IMAGE_URLS = [
   'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif',
 ];
 
-// 커스텀 Select 컴포넌트
 const CustomSelect = ({ options, value, onChange, placeholder, disabled = false }: {
   options: { value: string; label: string; }[];
   value: string;
@@ -76,14 +75,14 @@ const CustomSelect = ({ options, value, onChange, placeholder, disabled = false 
 export default function FindItemsPage() {
   const { allItems, loading } = useLostItems();
 
-  // 필터 상태 관리
+  // 필터 관리
   const [mainCategory, setMainCategory] = useState('');
   const [subCategory, setSubCategory] = useState('');
   const [hasPhoto, setHasPhoto] = useState(false);
   const [sortOrDate, setSortOrDate] = useState('newest');
   const [selectedDate, setSelectedDate] = useState('');
 
-  // 페이지네이션 및 모달 상태
+  // 페이지네이션, 모달 상태
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedItem, setSelectedItem] = useState<LostItem | null>(null);
 
@@ -216,10 +215,10 @@ export default function FindItemsPage() {
                 paginatedItems.map(item => (
                   <div key={item.id} className={styles.card} onClick={() => handleCardClick(item)}>
                     <img
-                      src={item.photo && !NO_IMAGE_URLS.includes(item.photo) ? item.photo : 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif'}
+                      src={item.photo && !NO_IMAGE_URLS.includes(item.photo) ? item.photo : NO_IMAGE_URLS[0]}
                       alt={item.name}
                       className={styles.cardImage}
-                      onError={(e) => { e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif'; }}
+                      onError={(e) => { e.currentTarget.src = NO_IMAGE_URLS[0]; }}
                     />
                     <div className={styles.cardBody}>
                       <p className={styles.itemName}>{item.name}</p>
@@ -229,8 +228,13 @@ export default function FindItemsPage() {
                     </div>
                   </div>
                 ))
-              ) : (
-                <div className={styles.message}>조건에 맞는 분실물이 없습니다.</div>
+              ) : ( 
+                <div className={styles.message}>
+                  <img 
+                    src="/Sad.svg"
+                    className={styles.messageImage}
+                  />조건에 맞는 분실물이 없어요!
+                  </div>
               )}
             </div>
 
@@ -261,10 +265,10 @@ export default function FindItemsPage() {
         <div className={styles.modalBackdrop} onClick={closeModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <img
-              src={selectedItem.photo && !NO_IMAGE_URLS.includes(selectedItem.photo) ? selectedItem.photo : 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif'}
+              src={selectedItem.photo && !NO_IMAGE_URLS.includes(selectedItem.photo) ? selectedItem.photo : NO_IMAGE_URLS[0]}
               alt={selectedItem.name}
               className={styles.modalImage}
-              onError={(e) => { e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif'; }}
+              onError={(e) => { e.currentTarget.src = NO_IMAGE_URLS[0]; }}
             />
             <div className={styles.modalDetails}>
               <h2>{selectedItem.name}</h2>
