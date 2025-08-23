@@ -214,10 +214,10 @@
   border: none;
   font-size: 18px;
 }
-/* success modal */
+
 .modalOverlay{
   position: fixed;
-  left: 0;
+  left: 200;
   top: 0;
   right: 0;
   bottom: 0;
@@ -229,28 +229,39 @@
 }
 .modal{
   background: #fff;
-  padding: 40px 30px 30px 30px;
+  padding: 15px 30px 20px 30px;
   border-radius: 12px;
   text-align:center;
+  display: flex;             
+  flex-direction: column;   
+  align-items:center;        
+  justify-content:center;     
+  gap: 10px;                  
   min-width: 350px;
   min-height: 260px;
   box-shadow: 0 0px 40px rgba(79,71,57,0.16);
   border: 1px solid rgba(79,71,57,0.08);
 }
+.modal img {
+  width: 15rem;
+  height: 15rem;
+  display: block;
+}
+
 .modalText{ 
   font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
   font-size: 20px;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .modalContent{
   text-align: left;
-  margin-bottom: 25px;
-  padding-left: 10px;
+  margin-bottom: 20px;
   font-size: 15px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  align-items: center;
 }
 
 .modalClose{

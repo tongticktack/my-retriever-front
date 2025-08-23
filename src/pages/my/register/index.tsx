@@ -381,6 +381,7 @@ export default function RegisterPage() {
   {showSuccess && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
+            <img src="/Smile.svg" alt="smile" />
             <p className={styles.modalText}>등록이 완료되었어요!</p>
             <button
               className={styles.modalClose}
@@ -394,6 +395,7 @@ export default function RegisterPage() {
       {showMissing && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
+            <img src="/Sad.svg" alt="sad" />
             <p className={styles.modalText}>항목이 다 작성되지 않았어요!</p>
             <button className={styles.modalClose} onClick={() => setShowMissing(false)}>확인</button>
           </div>
@@ -403,7 +405,7 @@ export default function RegisterPage() {
       {showReview && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
-            <h3 className={styles.modalText}>제출 전 항목을 확인하세요</h3>
+            <h3 className={styles.modalText} style={{ paddingTop: '20px'}}>제출 전 항목을 확인하세요</h3>
             <div className={styles.modalContent}>
               <div><strong>분실 장소:</strong> {place}</div>
               <div><strong>대분류 / 소분류:</strong> {mainCategory} / {subCategory}</div>
@@ -411,7 +413,7 @@ export default function RegisterPage() {
               <div><strong>분실물명:</strong> {itemName}</div>
               <div><strong>특이사항:</strong> {note}</div>
             </div>
-            <div style={{display:'flex', gap:8, justifyContent:'center'}}>
+            <div style={{display:'flex', gap:8, justifyContent:'center', marginBottom: '10px'}}>
               <button className={styles.modalClose} onClick={() => setShowReview(false)}>취소</button>
               <button className={styles.modalClose} onClick={async () => { setShowReview(false); await performSubmit(); }}>확인</button>
             </div>
