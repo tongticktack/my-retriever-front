@@ -6,7 +6,7 @@ import { categories} from "@/components/map/category/categoryData";
 import { useRef, useEffect } from "react";
 import { db, storage, auth } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { ref as storageRef, uploadBytes } from "firebase/storage";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function RegisterPage() {
   const [mainCategory, setMainCategory] = useState<string>("");
@@ -19,8 +19,10 @@ export default function RegisterPage() {
   const mainRef = useRef<HTMLDivElement | null>(null);
   const subRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]); // newly added local files
+  const [newPreviews, setNewPreviews] = useState<string[]>([]); // object URLs for new files
+  const [existingMediaIds, setExistingMediaIds] = useState<string[]>([]); // media_ids from firestore
+  const [existingPreviewUrls, setExistingPreviewUrls] = useState<string[]>([]); // download URLs for existing media
   const [dragOver, setDragOver] = useState(false);
   const [saving, setSaving] = useState(false);
   const [place, setPlace] = useState<string>("");
@@ -34,9 +36,9 @@ export default function RegisterPage() {
 
   useEffect(() => {
     return () => {
-      previews.forEach((p) => URL.revokeObjectURL(p));
+      newPreviews.forEach((p) => URL.revokeObjectURL(p));
     };
-  }, [previews]);
+  }, [newPreviews]);
 
   const router = useRouter();
 
@@ -58,7 +60,33 @@ export default function RegisterPage() {
         setDate(ex.lost_date || "");
         setItemName(data.item_name || "");
         setNote(data.note || "");
-        // media_ids exist but we won't load previews from storage for now
+        // Load existing media from storage (if any)
+        const rawMedia = (data.media_ids ?? []) as unknown;
+        let ids: string[] = [];
+        if (Array.isArray(rawMedia)) {
+          ids = rawMedia.filter(Boolean) as string[];
+        } else if (typeof rawMedia === 'string' && rawMedia.trim()) {
+          // support stray string field (comma-separated fallback)
+          ids = rawMedia.split(',').map((s) => s.trim()).filter(Boolean);
+        }
+        setExistingMediaIds(ids);
+        if (ids.length) {
+          try {
+            const urls = await Promise.all(
+              ids.map(async (mid) => {
+                const path = mid.includes('/') ? mid : `lost/${mid}`;
+                const r = storageRef(storage, path);
+                return await getDownloadURL(r);
+              })
+            );
+            setExistingPreviewUrls(urls);
+          } catch (e) {
+            console.error('failed to load existing media previews', e);
+            setExistingPreviewUrls([]);
+          }
+        } else {
+          setExistingPreviewUrls([]);
+        }
         setEditId(String(id));
       } catch (err) {
         console.error('failed to load item for edit', err);
@@ -69,19 +97,19 @@ export default function RegisterPage() {
 
   function handleFiles(files: FileList | File[]) {
     // revoke old preview URLs
-    previews.forEach((p) => URL.revokeObjectURL(p));
+  newPreviews.forEach((p) => URL.revokeObjectURL(p));
     const arr = Array.from(files as FileList);
     setPhotos(arr);
     const urls = arr.map((f) => URL.createObjectURL(f));
-    setPreviews(urls);
+  setNewPreviews(urls);
   }
 
   function removePhoto(index: number) {
     // revoke single preview URL
-    const url = previews[index];
+  const url = newPreviews[index];
     if (url) URL.revokeObjectURL(url);
     setPhotos((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  setNewPreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   useEffect(() => {
@@ -101,8 +129,8 @@ export default function RegisterPage() {
     if (saving) return;
     setSaving(true);
     try {
-      // upload photos to storage and collect storage ids (fullPath)
-      const mediaIds: string[] = [];
+  // upload newly added photos to storage and collect storage ids (fullPath)
+  const mediaIds: string[] = [...existingMediaIds];
       for (const file of photos) {
         const path = `lost/${Date.now()}_${file.name}`;
         const pRef = storageRef(storage, path);
@@ -138,7 +166,9 @@ export default function RegisterPage() {
       setItemName("");
       setNote("");
       setPhotos([]);
-      setPreviews([]);
+  setNewPreviews([]);
+  setExistingMediaIds([]);
+  setExistingPreviewUrls([]);
     } catch (err) {
       console.error("저장 실패", err);
       alert("저장에 실패했습니다. 콘솔을 확인하세요.");
@@ -160,7 +190,7 @@ export default function RegisterPage() {
     <main className={styles.main}>
       <Panel>
         <div className={styles.header}>
-          <h1 className={styles.title}>나의 분실물 등록</h1>
+          <h1 className={styles.title}>{editId ? "나의 분실물 수정" : "나의 분실물 등록"}</h1>
         </div>
 
   <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
@@ -309,9 +339,9 @@ export default function RegisterPage() {
                   const f = e.target.files?.[0];
                   if (!f) return;
                   // revoke old previews
-                  previews.forEach((p) => URL.revokeObjectURL(p));
-          setPhotos([f]);
-          setPreviews([URL.createObjectURL(f)]);
+                  newPreviews.forEach((p) => URL.revokeObjectURL(p));
+                  setPhotos([f]);
+                  setNewPreviews([URL.createObjectURL(f)]);
                 }}
               />
 
@@ -339,15 +369,22 @@ export default function RegisterPage() {
                   }
                 }}
               >
-                {previews.length === 0 ? (
+                {existingPreviewUrls.length === 0 && newPreviews.length === 0 ? (
                   <div className={styles.photoPlaceholder}>
                     <div className={styles.plus}>＋</div> 
                     <div>사진 업로드 (클릭 또는 드래그)</div>
                   </div>
                 ) : (
                   <div className={styles.previewGrid}>
-                    {previews.map((src, i) => (
-                      <div key={i} className={styles.previewItem}>
+                    {/* existing media (read-only) */}
+                    {existingPreviewUrls.map((src, i) => (
+                      <div key={`exist-${i}`} className={styles.previewItem}>
+                        <img src={src} className={styles.previewImg} alt={`existing-${i}`} />
+                      </div>
+                    ))}
+                    {/* newly added previews (removable) */}
+                    {newPreviews.map((src, i) => (
+                      <div key={`new-${i}`} className={styles.previewItem}>
                         <img src={src} className={styles.previewImg} alt={`preview-${i}`} />
                         <button
                           type="button"
