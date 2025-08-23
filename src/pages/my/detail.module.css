@@ -141,11 +141,11 @@
 }
 
 .thumbnail {
-  width: 200px;
-  height: 200px;
+  width: 150px;
+  height: 150px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid rgba(79,71,57,0.08);
+  border: 2px dashed rgba(79,71,57,0.15);
 }
 
 .actions { 

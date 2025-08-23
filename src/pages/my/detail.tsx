@@ -39,12 +39,13 @@ export default function DetailPage({ open, loading, item, onClose }: Props) {
     }
 
     Promise.all(
-      normalizedMediaIds.map((filename) =>
-        getDownloadURL(storageRef(storage, `lost/${filename}`)).catch((err) => {
-          console.warn(`Failed to load media: ${filename}`, err);
+      normalizedMediaIds.map((idOrName) => {
+        const path = idOrName.includes('/') ? idOrName : `lost/${idOrName}`;
+        return getDownloadURL(storageRef(storage, path)).catch((err) => {
+          console.warn(`Failed to load media: ${idOrName}`, err);
           return null; // Return null on error to not break Promise.all
-        })
-      )
+        });
+      })
     ).then((urls) => {
       if (isMounted) {
         setMediaUrls(urls.filter((url): url is string => !!url));
