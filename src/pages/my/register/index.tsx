@@ -404,7 +404,7 @@ export default function RegisterPage() {
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <h3 className={styles.modalText}>제출 전 항목을 확인하세요</h3>
-            <div style={{textAlign:'left', marginBottom:12}}>
+            <div className={styles.modalContent}>
               <div><strong>분실 장소:</strong> {place}</div>
               <div><strong>대분류 / 소분류:</strong> {mainCategory} / {subCategory}</div>
               <div><strong>분실 일자:</strong> {date}</div>

@@ -12,15 +12,25 @@
   min-height: calc(100vh - 120px);
 }
 
-/* Panel 내부에 들어가는 컨텐츠 스타일 */
 .header{
   margin-bottom: 16px;
 }
 
 .title{
-  font-size: 20px;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-size: 1.5rem;
   text-align: center;
   margin: 8px 0 18px;
+  color: #4F4739;
+}
+
+.header::after {
+  content: "";
+  display: block;
+  width: 35rem;
+  height: 0.3px;
+  background: rgba(79,71,57,0.65);
+  margin: 22px auto 0;
 }
 
 .form{
@@ -37,8 +47,10 @@
 }
 
 .sectionTitle{
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.25rem;
   margin-bottom: 12px;
+  color: #4F4739;
 }
 
 .input{
@@ -209,7 +221,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0,0,0,0.32);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -217,18 +229,36 @@
 }
 .modal{
   background: #fff;
-  padding: 20px 24px;
+  padding: 40px 30px 30px 30px;
   border-radius: 12px;
   text-align:center;
-  min-width: 260px;
+  min-width: 350px;
+  min-height: 260px;
+  box-shadow: 0 0px 40px rgba(79,71,57,0.16);
+  border: 1px solid rgba(79,71,57,0.08);
 }
-.modalText{ font-size: 16px; margin-bottom: 12px }
+.modalText{ 
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-size: 20px;
+  margin-bottom: 25px;
+}
+
+.modalContent{
+  text-align: left;
+  margin-bottom: 25px;
+  padding-left: 10px;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .modalClose{
   background: var(--accent);
   color:#fff;
   border:none;
-  padding:8px 14px;
-  border-radius:8px;
+  padding:10px 14px;
+  border-radius: 20px;
   cursor:pointer;
 }
 .modalClose + .modalClose{ margin-left:6px }
