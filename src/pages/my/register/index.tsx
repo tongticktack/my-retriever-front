@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useRouter } from "next/router";
+import Image from "next/image";
+import router from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./register.module.css";
 import { categories} from "@/components/map/category/categoryData";
@@ -39,8 +40,6 @@ export default function RegisterPage() {
       newPreviews.forEach((p) => URL.revokeObjectURL(p));
     };
   }, [newPreviews]);
-
-  const router = useRouter();
 
   useEffect(() => {
     const { id } = router.query;
@@ -410,6 +409,10 @@ export default function RegisterPage() {
             <button className={styles.submit} type="button" disabled={saving} onClick={handleRegisterClick}>
               {saving ? "저장중..." : (editId ? "수정" : "등록")}
             </button>
+            <button className={styles.floatingButton} type="button" onClick={() => router.push('/my')}>
+            <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
+            <span>목록으로 돌아가기</span>
+          </button>
           </div>
         </form>
       </Panel>

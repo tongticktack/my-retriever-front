@@ -215,6 +215,24 @@
   font-size: 18px;
 }
 
+.floatingButton {
+  position: absolute;
+  right: 8rem;
+  bottom: 0.6rem;
+  background: #FAF1E6;
+  color: #000000;
+  border: none;
+  padding: 0.6rem 0.8rem;
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  cursor: pointer;
+}
+
+.floatingButton:hover { transform: translateY(-1px); }
+
+/* success modal */
 .modalOverlay{
   position: fixed;
   left: 200;
