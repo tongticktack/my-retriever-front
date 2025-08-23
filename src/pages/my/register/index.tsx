@@ -20,10 +20,10 @@ export default function RegisterPage() {
   const mainRef = useRef<HTMLDivElement | null>(null);
   const subRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [photos, setPhotos] = useState<File[]>([]); // newly added local files
-  const [newPreviews, setNewPreviews] = useState<string[]>([]); // object URLs for new files
-  const [existingMediaIds, setExistingMediaIds] = useState<string[]>([]); // media_ids from firestore
-  const [existingPreviewUrls, setExistingPreviewUrls] = useState<string[]>([]); // download URLs for existing media
+  const [photos, setPhotos] = useState<File[]>([]); 
+  const [newPreviews, setNewPreviews] = useState<string[]>([]); 
+  const [existingMediaIds, setExistingMediaIds] = useState<string[]>([]); 
+  const [existingPreviewUrls, setExistingPreviewUrls] = useState<string[]>([]); 
   const [dragOver, setDragOver] = useState(false);
   const [saving, setSaving] = useState(false);
   const [place, setPlace] = useState<string>("");
@@ -41,34 +41,41 @@ export default function RegisterPage() {
     };
   }, [newPreviews]);
 
+  // url 쿼리로 폼 채우기
   useEffect(() => {
     const { id } = router.query;
     if (!id) return;
     const load = async () => {
       try {
+        // 로그인 사용자 확인
         const userId = auth?.currentUser?.uid || null;
         if (!userId) return;
+
+        //firebase 문서 참조 (lost_items->items)
         const docRef = doc(db, "lost_items", userId, "items", String(id));
         const snap = await getDoc(docRef);
         if (!snap.exists()) return;
+
         const data: any = snap.data();
         const ex = data.extracted || {};
+
         setMainCategory(ex.category || "");
         setSubCategory(ex.subcategory || "");
         setPlace(ex.region || "");
         setDate(ex.lost_date || "");
         setItemName(data.item_name || "");
         setNote(data.note || "");
-        // Load existing media from storage (if any)
+
+        // DB 저장 미디어 경로 정규화
         const rawMedia = (data.media_ids ?? []) as unknown;
         let ids: string[] = [];
         if (Array.isArray(rawMedia)) {
           ids = rawMedia.filter(Boolean) as string[];
         } else if (typeof rawMedia === 'string' && rawMedia.trim()) {
-          // support stray string field (comma-separated fallback)
           ids = rawMedia.split(',').map((s) => s.trim()).filter(Boolean);
         }
         setExistingMediaIds(ids);
+
         if (ids.length) {
           try {
             const urls = await Promise.all(
@@ -86,6 +93,7 @@ export default function RegisterPage() {
         } else {
           setExistingPreviewUrls([]);
         }
+
         setEditId(String(id));
       } catch (err) {
         console.error('failed to load item for edit', err);
@@ -94,23 +102,28 @@ export default function RegisterPage() {
     load();
   }, [router.query]);
 
+// 사용자 선택 파일 준비 및 저장
   function handleFiles(files: FileList | File[]) {
-    // revoke old preview URLs
   newPreviews.forEach((p) => URL.revokeObjectURL(p));
+
     const arr = Array.from(files as FileList);
     setPhotos(arr);
+
     const urls = arr.map((f) => URL.createObjectURL(f));
   setNewPreviews(urls);
   }
 
+  // 특정 사진 제거
   function removePhoto(index: number) {
-    // revoke single preview URL
   const url = newPreviews[index];
     if (url) URL.revokeObjectURL(url);
+
+    // 해당 인덱스 제거
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   setNewPreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // 바깥 영역 클릭 시 드롭다운 닫기
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (mainRef.current && !mainRef.current.contains(e.target as Node)) setOpenMain(false);
@@ -120,15 +133,17 @@ export default function RegisterPage() {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
+  // 필수 입력값 검증
   const isValid = () => {
     return place && date && itemName && mainCategory && subCategory && note;
   };
 
+  // submit 함수
   async function performSubmit() {
     if (saving) return;
     setSaving(true);
     try {
-  // upload newly added photos to storage and collect storage ids (fullPath)
+  //새로 추가된 사진을 firebase storage에 업로드 -> 경로 모으기
   const mediaIds: string[] = [...existingMediaIds];
       for (const file of photos) {
         const path = `lost/${Date.now()}_${file.name}`;
@@ -139,9 +154,11 @@ export default function RegisterPage() {
 
       const userId = auth?.currentUser?.uid || null;
 
-      // Update existing when editId is present, otherwise create new
+      // editId 기준 -> 있으면 수정, 없으면 등록
       if (userId) {
         if (editId) {
+
+          // 기존 문서 업데이트 (수정)
           const itemRef = doc(db, "lost_items", userId, "items", editId);
           await updateDoc(itemRef, {
             extracted: {
@@ -155,6 +172,8 @@ export default function RegisterPage() {
             note: note,
             updated_at: serverTimestamp(),
           });
+
+          // 새로운 문서 생성 (등록)
         } else {
           const itemsCol = collection(db, "lost_items", userId, "items");
           await addDoc(itemsCol, {
@@ -172,7 +191,7 @@ export default function RegisterPage() {
           });
         }
       }
-
+      // 성공 표시 -> 상태 초기화
       setShowSuccess(true);
       setPlace("");
       setDate("");
@@ -197,7 +216,6 @@ export default function RegisterPage() {
       setShowMissing(true);
       return;
     }
-    // show review modal before submitting
     setShowReview(true);
   }
 
@@ -353,7 +371,6 @@ export default function RegisterPage() {
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (!f) return;
-                  // revoke old previews
                   newPreviews.forEach((p) => URL.revokeObjectURL(p));
                   setPhotos([f]);
                   setNewPreviews([URL.createObjectURL(f)]);
@@ -384,6 +401,8 @@ export default function RegisterPage() {
                   }
                 }}
               >
+                
+                {/* 사진이 하나도 없을 때 */}
                 {existingPreviewUrls.length === 0 && newPreviews.length === 0 ? (
                   <div className={styles.photoPlaceholder}>
                     <div className={styles.plus}>＋</div> 
@@ -391,13 +410,13 @@ export default function RegisterPage() {
                   </div>
                 ) : (
                   <div className={styles.previewGrid}>
-                    {/* existing media (read-only) */}
+                    {/* 기존 firebase 저장 미디어 */}
                     {existingPreviewUrls.map((src, i) => (
                       <div key={`exist-${i}`} className={styles.previewItem}>
                         <img src={src} className={styles.previewImg} alt={`existing-${i}`} />
                       </div>
                     ))}
-                    {/* newly added previews (removable) */}
+                    {/* 새로 추가한 미디어 */}
                     {newPreviews.map((src, i) => (
                       <div key={`new-${i}`} className={styles.previewItem}>
                         <img src={src} className={styles.previewImg} alt={`preview-${i}`} />
@@ -433,11 +452,12 @@ export default function RegisterPage() {
         </form>
       </Panel>
 
-  {/* floating registration button removed per request */}
+  {/* editId 유무 -> 수정, 등록 선택  */} 
   {showSuccess && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <img src="/Smile.svg" alt="smile" />
+            {/* editId 유무 -> 수정, 등록 문구 선택  */}
             <p className={styles.modalText}>{editId ? "수정이 완료되었어요!" : "등록이 완료되었어요!"}</p>
             <button
               className={styles.modalClose}
@@ -448,6 +468,8 @@ export default function RegisterPage() {
           </div>
         </div>
       )}
+
+      {/* 확인 모달: 제출 전에 입력값 최종 확인 */}
       {showMissing && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>

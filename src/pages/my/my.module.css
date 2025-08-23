@@ -11,7 +11,7 @@
   position: relative;
 }
 
-/* header 밑에 구분선 넣으려고 가상 요소 넣은 것 */
+/* header 밑에 구분선 넣으려고 가상 요소 사용 */
 .header::after {
   content: "";
   display: block;
@@ -81,16 +81,6 @@
   transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
   will-change: transform, box-shadow;
 }
-/* .tableDataRow[role="button"] td { cursor: pointer; }
-.tableDataRow[role="button"]:hover,
-.tableDataRow[role="button"]:focus {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 15px rgba(79,71,57,0.1);
-  background: #fff8f2;
-}
-.tableDataRow[role="button"]:active {
-  transform: translateY(-0.1px);
-} */
 
 .tableDataRow[role="button"]:focus {
   outline: none;

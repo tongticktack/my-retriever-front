@@ -15,15 +15,20 @@ export default function DetailPage({ open, loading, item, onClose }: Props) {
   const router = useRouter();
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
 
-  const mediaKey = item?.id; // Use item id as a key to re-trigger effect
+  const mediaKey = item?.id; 
 
+  // 모달 open -> item.media_ids가 있을 때 Storage URL 비동기 로드
   useEffect(() => {
+
+    // 모달 close or 미디어 없으면 초기화 후 종료
     if (!open || !item?.media_ids) {
       setMediaUrls([]);
       return;
     }
 
     let isMounted = true;
+
+    // media_ids 정규화
     const raw = item.media_ids;
     const normalizedMediaIds: string[] = (() => {
       if (!raw) return [];
@@ -38,12 +43,13 @@ export default function DetailPage({ open, loading, item, onClose }: Props) {
       return;
     }
 
+    // storage 경로 변환 -> getdownLoadURL 병렬 요청
     Promise.all(
       normalizedMediaIds.map((idOrName) => {
         const path = idOrName.includes('/') ? idOrName : `lost/${idOrName}`;
         return getDownloadURL(storageRef(storage, path)).catch((err) => {
           console.warn(`Failed to load media: ${idOrName}`, err);
-          return null; // Return null on error to not break Promise.all
+          return null;
         });
       })
     ).then((urls) => {
