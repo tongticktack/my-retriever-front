@@ -9,59 +9,45 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+// 애니메이션 시간을 상수로 정의하여 관리 용이성을 높입니다.
+const ANIMATION_DURATION = 350;
+
 const Sidebar = ({ items, storagePlace, onClose }: SidebarProps) => {
   const [detailItem, setDetailItem] = useState<LostItem | null>(null);
-  const [isClosing, setIsClosing] = useState(false); // 닫기 애니메이션 상태 추가
+  const [isClosing, setIsClosing] = useState(false);
+  
+  // 뷰 전환 애니메이션을 위한 상태
+  const [isListView, setIsListView] = useState(true);
 
   useEffect(() => {
-    // items가 변경되면 상세 아이템 뷰를 닫고 목록으로 돌아갑니다.
-    setDetailItem(null);
+    // 외부 items가 변경되면 목록 뷰로 초기화합니다.
+    if (detailItem) {
+      handleBack();
+    }
   }, [items]);
 
-  // 닫기 버튼 클릭 시 애니메이션을 먼저 실행하고, 애니메이션이 끝난 후 onClose를 호출합니다.
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
       onClose();
-    }, 300); // CSS 애니메이션 시간과 동일하게 설정 (0.3s)
+    }, ANIMATION_DURATION); // 상수를 사용합니다.
+  };
+
+  const handleItemClick = (item: LostItem) => {
+    setDetailItem(item); // 먼저 상세 페이지에 표시할 데이터를 설정합니다.
+    setIsListView(false); // 그 다음, 뷰 전환 애니메이션을 시작합니다.
+  };
+
+  const handleBack = () => {
+    setIsListView(true); // 먼저 뷰 전환 애니메이션을 시작합니다.
+    setTimeout(() => {
+      setDetailItem(null); // 애니메이션이 끝난 후, 상세 페이지 데이터를 초기화합니다.
+    }, ANIMATION_DURATION); // 상수를 사용합니다.
   };
 
   const sortedItems = useMemo(() => {
-    // 최신순으로 아이템을 정렬합니다.
     return [...items].sort((a, b) => new Date(b.foundDate).getTime() - new Date(a.foundDate).getTime());
   }, [items]);
-
-  // 상세 아이템 뷰 또는 목록 뷰를 결정합니다.
-  const sidebarContent = detailItem ? (
-    <ItemDetail item={detailItem} onBack={() => setDetailItem(null)} />
-  ) : (
-    <>
-      <div className={styles.header}>
-        <h3>{items[0]?.storagePlace || '분실물 목록'} ({items.length}개)</h3>
-        <button onClick={handleClose} className={styles.closeButton}>×</button>
-      </div>
-      <ul className={styles.itemList}>
-        {sortedItems.map(item => (
-          <li key={item.id} className={styles.itemCard} onClick={() => setDetailItem(item)}>
-            <img
-              src={item.photo || 'https://placehold.co/80x80?text=No+Image'}
-              alt={item.name}
-              className={styles.itemImage}
-              onError={(e) => {
-                e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif';
-                e.currentTarget.onerror = null;
-              }}
-            />
-            <div className={styles.itemInfo}>
-              <p className={styles.itemName}>{item.name}</p>
-              <p className={styles.itemCategory}>{item.category}</p>
-              <p className={styles.itemDate}><strong>습득일:</strong> {item.foundDate}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
 
   return (
     <>
@@ -72,9 +58,38 @@ const Sidebar = ({ items, storagePlace, onClose }: SidebarProps) => {
           ${isClosing ? styles.slideOut : styles.slideIn}
         `}
       >
-        {/* 콘텐츠를 감싸는 래퍼를 추가하여 내부 애니메이션을 적용합니다. */}
         <div className={styles.contentWrapper}>
-          {sidebarContent}
+          {/* 목록 뷰 */}
+          <div className={`${styles.viewContainer} ${isListView ? styles.visible : styles.hidden}`}>
+            <div className={styles.header}>
+              <h3>{storagePlace || '분실물 목록'} ({items.length}개)</h3>
+              <button onClick={handleClose} className={styles.closeButton}>×</button>
+            </div>
+            <ul className={styles.itemList}>
+              {sortedItems.map(item => (
+                <li key={item.id} className={styles.itemCard} onClick={() => handleItemClick(item)}>
+                  <img
+                    src={item.photo || 'https://placehold.co/80x80?text=No+Image'}
+                    alt={item.name}
+                    className={styles.itemImage}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif';
+                    }}
+                  />
+                  <div className={styles.itemInfo}>
+                    <p className={styles.itemName}>{item.name}</p>
+                    <p className={styles.itemCategory}>{item.category}</p>
+                    <p className={styles.itemDate}><strong>습득일:</strong> {item.foundDate}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* 상세 뷰 */}
+          <div className={`${styles.viewContainer} ${!isListView ? styles.visible : styles.hidden}`}>
+            {detailItem && <ItemDetail item={detailItem} onBack={handleBack} />}
+          </div>
         </div>
       </div>
     </>

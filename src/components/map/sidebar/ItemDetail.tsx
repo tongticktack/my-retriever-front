@@ -11,7 +11,7 @@ const ItemDetail = ({ item, onBack }: ItemDetailProps) => {
     <div className={styles.detailContainer}>
       <button onClick={onBack} className={styles.backButton}>&larr; 목록으로 돌아가기</button>
       <img
-        src={item.photo || 'https://placehold.co/350x200?text=No+Image'}
+        src={item.photo}
         alt={item.name}
         className={styles.detailImage}
         onError={(e) => {

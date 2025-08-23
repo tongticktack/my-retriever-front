@@ -5,7 +5,7 @@ import { useLostItems } from '../map/useLostItems';
 import { categories } from '@/components/map/category/categoryData';
 import styles from './search.module.css';
 import type { LostItem } from '../map/types';
-
+import Panel from "@/components/Panel";
 const PAGE_SIZE = 12;
 const PAGE_CHUNK_SIZE = 10;
 
@@ -159,7 +159,8 @@ export default function FindItemsPage() {
 
   return (
     <main className={styles.main}>
-      <div className={styles.panel}>
+
+       <Panel className={styles.panelFull}>
         <div className={styles.header}>
           <h1 className={styles.title}>분실물 찾기</h1>
         </div>
@@ -259,7 +260,7 @@ export default function FindItemsPage() {
             )}
           </>
         )}
-      </div>
+      </Panel>
 
       {selectedItem && (
         <div className={styles.modalBackdrop} onClick={closeModal}>
