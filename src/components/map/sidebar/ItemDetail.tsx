@@ -1,15 +1,12 @@
-// src/components/map/ItemDetail.tsx
 import React from 'react';
 import type { LostItem } from '@/pages/map/types';
-import styles from './Sidebar.module.css'; // 기존 사이드바 스타일 재활용
-
+import styles from './Sidebar.module.css';
 interface ItemDetailProps {
   item: LostItem;
   onBack: () => void;
 }
 
 const ItemDetail = ({ item, onBack }: ItemDetailProps) => {
-  console.log("전달된 사진 URL:", item.photo);
   return (
     <div className={styles.detailContainer}>
       <button onClick={onBack} className={styles.backButton}>&larr; 목록으로 돌아가기</button>
@@ -19,7 +16,7 @@ const ItemDetail = ({ item, onBack }: ItemDetailProps) => {
         className={styles.detailImage}
         onError={(e) => {
           e.currentTarget.src = 'https://www.lost112.go.kr/lostnfs/images/sub/img02_no_img.gif';
-          e.currentTarget.onerror = null; // 무한 루프 방지
+          e.currentTarget.onerror = null;
         }}
       />
       <div className={styles.detailInfo}>
