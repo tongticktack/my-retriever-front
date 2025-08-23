@@ -69,10 +69,15 @@
   cursor: not-allowed;
 }
 
-.placeholderText { color: #6b7280; }
-.selectedText { color: #111827; }
+.placeholderText {
+  color: #6b7280;
+}
 
-.chev { 
+.selectedText {
+  color: #111827;
+}
+
+.chev {
   margin-left: 8px;
   color: #666;
   font-size: 0.8em;
@@ -182,7 +187,9 @@
   text-overflow: ellipsis;
 }
 
-.itemCategory, .itemDate, .itemPlace {
+.itemCategory,
+.itemDate,
+.itemPlace {
   font-size: 0.9rem;
   color: #6b7280;
   margin-bottom: 0.25rem;
@@ -192,11 +199,24 @@
 }
 
 .message {
+  grid-column: 1 / -1; /* 그리드의 전체 너비를 차지하도록 설정 */
   width: 100%;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   padding: 4rem 0;
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: 2rem;
+}
+
+.messageImage {
+  width: 30%;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 0;
 }
 
 .pagination {
@@ -277,14 +297,14 @@
 }
 
 .modalDetails h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .modalDetails p {
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
 }
 
 .modalCloseButton {
