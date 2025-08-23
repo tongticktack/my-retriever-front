@@ -9,25 +9,43 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+// 애니메이션 시간을 상수로 정의하여 관리 용이성을 높입니다.
+const ANIMATION_DURATION = 350;
+
 const Sidebar = ({ items, storagePlace, onClose }: SidebarProps) => {
   const [detailItem, setDetailItem] = useState<LostItem | null>(null);
-  const [isClosing, setIsClosing] = useState(false); // 닫기 애니메이션 상태 추가
+  const [isClosing, setIsClosing] = useState(false);
+  
+  // 뷰 전환 애니메이션을 위한 상태
+  const [isListView, setIsListView] = useState(true);
 
   useEffect(() => {
-    // items가 변경되면 상세 아이템 뷰를 닫고 목록으로 돌아갑니다.
-    setDetailItem(null);
+    // 외부 items가 변경되면 목록 뷰로 초기화합니다.
+    if (detailItem) {
+      handleBack();
+    }
   }, [items]);
 
-  // 닫기 버튼 클릭 시 애니메이션을 먼저 실행하고, 애니메이션이 끝난 후 onClose를 호출합니다.
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
       onClose();
-    }, 300); // CSS 애니메이션 시간과 동일하게 설정 (0.3s)
+    }, ANIMATION_DURATION); // 상수를 사용합니다.
+  };
+
+  const handleItemClick = (item: LostItem) => {
+    setDetailItem(item); // 먼저 상세 페이지에 표시할 데이터를 설정합니다.
+    setIsListView(false); // 그 다음, 뷰 전환 애니메이션을 시작합니다.
+  };
+
+  const handleBack = () => {
+    setIsListView(true); // 먼저 뷰 전환 애니메이션을 시작합니다.
+    setTimeout(() => {
+      setDetailItem(null); // 애니메이션이 끝난 후, 상세 페이지 데이터를 초기화합니다.
+    }, ANIMATION_DURATION); // 상수를 사용합니다.
   };
 
   const sortedItems = useMemo(() => {
-    // 최신순으로 아이템을 정렬합니다.
     return [...items].sort((a, b) => new Date(b.foundDate).getTime() - new Date(a.foundDate).getTime());
   }, [items]);
 

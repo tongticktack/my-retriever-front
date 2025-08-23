@@ -1,6 +1,6 @@
 .panel {
   background: #ffffff;
-  border-radius: 2rem;
+  border-radius: 16px;
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
@@ -21,5 +21,5 @@
 .scrollY { overflow-y: auto; }
 
 @media (max-width: 768px) {
-  .panel { border-radius: 1.25rem; padding: 1.5rem 1.25rem 1.25rem; min-height: calc(100vh - 3rem); }
+  .panel { border-radius: 16px; padding: 1.5rem 1.25rem 1.25rem; min-height: calc(100vh - 3rem); }
 }
