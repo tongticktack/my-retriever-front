@@ -251,17 +251,18 @@
 .modalText{ 
   font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
   font-size: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .modalContent{
   text-align: left;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   font-size: 15px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .modalClose{
