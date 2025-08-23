@@ -139,22 +139,38 @@ export default function RegisterPage() {
 
       const userId = auth?.currentUser?.uid || null;
 
-      // Store or update registration under `lost_items/{userId}/items/{doc}`
+      // Update existing when editId is present, otherwise create new
       if (userId) {
-        const itemsCol = collection(db, "lost_items", userId, "items");
-        await addDoc(itemsCol, {
-          extracted: {
-            category: mainCategory,
-            lost_date: date,
-            region: place,
-            subcategory: subCategory,
-          },
-          media_ids: mediaIds,
-          item_name: itemName,
-          note: note,
-          created_at: serverTimestamp(),
-          updated_at: serverTimestamp(),
-        });
+        if (editId) {
+          const itemRef = doc(db, "lost_items", userId, "items", editId);
+          await updateDoc(itemRef, {
+            extracted: {
+              category: mainCategory,
+              lost_date: date,
+              region: place,
+              subcategory: subCategory,
+            },
+            media_ids: mediaIds,
+            item_name: itemName,
+            note: note,
+            updated_at: serverTimestamp(),
+          });
+        } else {
+          const itemsCol = collection(db, "lost_items", userId, "items");
+          await addDoc(itemsCol, {
+            extracted: {
+              category: mainCategory,
+              lost_date: date,
+              region: place,
+              subcategory: subCategory,
+            },
+            media_ids: mediaIds,
+            item_name: itemName,
+            note: note,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+          });
+        }
       }
 
       setShowSuccess(true);
@@ -422,7 +438,7 @@ export default function RegisterPage() {
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <img src="/Smile.svg" alt="smile" />
-            <p className={styles.modalText}>등록이 완료되었어요!</p>
+            <p className={styles.modalText}>{editId ? "수정이 완료되었어요!" : "등록이 완료되었어요!"}</p>
             <button
               className={styles.modalClose}
       onClick={() => { setShowSuccess(false); router.push('/my'); }}
