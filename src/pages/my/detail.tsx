@@ -1,13 +1,23 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useState } from 'react';
 import styles from './detail.module.css';
 import { useRouter } from 'next/router';
 import { storage } from '@/lib/firebase';
 import { ref as storageRef, getDownloadURL } from 'firebase/storage';
 
+interface ExtractedFields { category?: string; subcategory?: string; region?: string; lost_date?: string; }
+interface LostItemRecord {
+  id?: string;
+  item_name?: string;
+  note?: string;
+  media_ids?: string[];
+  extracted?: ExtractedFields;
+  [k: string]: unknown;
+}
 type Props = {
   open: boolean;
   loading?: boolean;
-  item: any | null;
+  item: LostItemRecord | null;
   onClose: () => void;
   onDelete: () => void;
   onFound: () => void;
@@ -37,7 +47,7 @@ function ConfirmFoundModal({ open, title, message, onConfirm, onCancel }: Confir
   return (
     <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true" onClick={onCancel}>
       <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
-        <img src="/Smile.svg" className={styles.confirmIcon} />
+  <img src="/Smile.svg" className={styles.confirmIcon} alt="confirm" />
         <h3 className={styles.confirmTitle}>{title}</h3>
         <p className={styles.confirmMessage}>{message}</p>
         <div className={styles.confirmActions}>
@@ -76,12 +86,12 @@ export default function DetailPage({ open, loading, item, onClose, onDelete, onF
     let isMounted = true;
 
     // media_ids 정규화
-    const raw = item.media_ids;
+    const rawIds: unknown = item.media_ids;
     const normalizedMediaIds: string[] = (() => {
-      if (!raw) return [];
-      if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
-      if (typeof raw === 'string') return raw.split(',').map(s => s.trim()).filter(Boolean);
-      if (typeof raw === 'object') return Object.values(raw).map(String).filter(Boolean);
+      if (!rawIds) return [];
+      if (Array.isArray(rawIds)) return rawIds.filter(Boolean).map(String);
+      if (typeof rawIds === 'string') return rawIds.split(',').map((s: string) => s.trim()).filter(Boolean);
+      if (typeof rawIds === 'object') return Object.values(rawIds).map(String).filter(Boolean);
       return [];
     })();
 
@@ -108,7 +118,7 @@ export default function DetailPage({ open, loading, item, onClose, onDelete, onF
     return () => {
       isMounted = false;
     };
-  }, [open, mediaKey]);
+  }, [open, mediaKey, item?.media_ids]);
 
   if (!open) return null;
 
@@ -126,8 +136,9 @@ export default function DetailPage({ open, loading, item, onClose, onDelete, onF
   };
 
   const handleConfirmFound = () => {
-    onDelete(); // 실제 삭제 로직 실행
-    setShowConfirm(false); // 확인 모달 닫기
+    // '찾았어요!' 확정 시 부모의 onFound 호출 (삭제 + 성공 모달 표시 로직 상위에서 처리)
+    onFound();
+    setShowFound(false); // 자신(찾았어요 확인 모달) 닫기
   };
   return (
     <div className={styles.detailOverlay} role="dialog" aria-modal="true" onClick={onClose}>

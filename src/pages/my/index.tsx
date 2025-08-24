@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
@@ -8,13 +9,24 @@ import { doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import DetailPage from "./detail";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { ref as storageRef, deleteObject } from "firebase/storage";
+interface ExtractedFields { category?: string; subcategory?: string; lost_date?: string; region?: string; }
+interface LostItemRecord {
+  id: string;
+  extracted?: ExtractedFields;
+  media_ids?: string[];
+  item_name?: string;
+  note?: string;
+  created_at?: { toMillis?: () => number } | number | Date;
+  updated_at?: { toMillis?: () => number } | number | Date;
+  [k: string]: unknown;
+}
 type TableRow = {
   id: string;
-  major: string; // extracted.category
-  minor: string; // extracted.subcategory
-  date: string;  // extracted.lost_date
-  place: string; // extracted.region
-  fullData: any; // 전체 데이터 객체
+  major: string;
+  minor: string;
+  date: string;
+  place: string;
+  fullData: LostItemRecord;
 };
 
 type AlertModalProps = {
@@ -30,7 +42,7 @@ function AlertModal({ open, message, onClose }: AlertModalProps) {
   return (
     <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true">
       <div className={styles.confirmModal}>
-        <img src="/Smile.svg" className={styles.confirmIcon} />
+        <img src="/Smile.svg" alt="알림" className={styles.confirmIcon} />
         <h3 className={styles.confirmTitle}>
           <p className={styles.confirmMessage}>{message}
           </p>
@@ -46,6 +58,7 @@ function AlertModal({ open, message, onClose }: AlertModalProps) {
 const PAGE_SIZE = 10;
 
 export default function MyPage() {
+  const router = useRouter(); // moved earlier so useEffect dependency is valid
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [rows, setRows] = useState<TableRow[]>([]);
@@ -53,8 +66,7 @@ export default function MyPage() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailItem, setDetailItem] = useState<any | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailItem, setDetailItem] = useState<LostItemRecord | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showFoundModal, setShowFoundModal] = useState(false);
 
@@ -85,7 +97,7 @@ export default function MyPage() {
 
         try {
           // firebase에서 문서 불러오기
-          const userDocRef = doc(db, 'lost_items', currentUser.uid);
+            const userDocRef = doc(db, 'lost_items', currentUser.uid);
 
           // 2. getDocs (여러 문서) 대신 getDoc (단일 문서)으로 가져옵니다.
           const docSnap = await getDoc(userDocRef);
@@ -98,12 +110,23 @@ export default function MyPage() {
 
             // created_at 기준으로 내림차순 정렬 (배열이므로 클라이언트에서 정렬)
             // Firestore Timestamp 객체는 toMillis()로 변환하여 비교합니다.
-            itemsArray.sort((a: any, b: any) =>
-              (b.created_at?.toMillis() ?? 0) - (a.created_at?.toMillis() ?? 0)
-            );
+            itemsArray.sort((a: LostItemRecord, b: LostItemRecord) => {
+              interface MaybeMillis { toMillis?: () => number }
+              const toMillis = (v: unknown): number => {
+                if (v == null) return 0;
+                if (typeof v === 'number') return v;
+                if (v instanceof Date) return v.getTime();
+                if (typeof v === 'object') {
+                  const mm = v as MaybeMillis;
+                  if (typeof mm.toMillis === 'function') return mm.toMillis();
+                }
+                return 0;
+              };
+              return toMillis(b.created_at) - toMillis(a.created_at);
+            });
 
-            items = itemsArray.map((itemData: any) => {
-              const ex = itemData?.extracted ?? {};
+            items = itemsArray.map((itemData: LostItemRecord) => {
+              const ex = itemData?.extracted ?? {} as ExtractedFields;
               return {
                 id: itemData.id,
                 major: String(ex.category ?? '-'),
@@ -124,10 +147,10 @@ export default function MyPage() {
           } else {
             setError(null);
           }
-        } catch (e: any) {
+        } catch (e) {
           console.error('[fetch error]', e);
           if (!mounted) return;
-          setError(e?.message ?? '데이터를 불러오는 중 오류가 발생했습니다.');
+          setError(e instanceof Error ? e.message : '데이터를 불러오는 중 오류가 발생했습니다.');
         } finally {
           if (mounted) setLoading(false);
         }
@@ -138,10 +161,9 @@ export default function MyPage() {
       mounted = false;
       try { unsub(); } catch { /* ignore */ }
     };
-  }, []);
+  }, [router]);
 
   const paged = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const router = useRouter();
 
   const performDelete = async (itemId: string, onSuccess: () => void) => {
     if (!user) return;
@@ -233,6 +255,9 @@ export default function MyPage() {
                 {!loading && !error && paged.map((r, i) => {
                   const index = (currentPage - 1) * PAGE_SIZE + i + 1;
                   const handleClick = () => {
+                    // 다른 아이템을 열 때 이전 성공/찾았어요 알림 모달 잔존 시 닫기
+                    setShowSuccessModal(false);
+                    setShowFoundModal(false);
                     // Firestore에 다시 요청하지 않고,
                     // 'r' 객체에 이미 담겨있는 원본 데이터(fullData)를 바로 사용합니다.
                     setDetailItem(r.fullData);
@@ -309,7 +334,7 @@ export default function MyPage() {
         </div>
       </Panel>
       <DetailPage open={detailOpen}
-        loading={loadingDetail} item={detailItem}
+        loading={loading} item={detailItem}
         onClose={() => setDetailOpen(false)}
         onDelete={() => {
           if (detailItem?.id) {
