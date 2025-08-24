@@ -10,6 +10,7 @@ type Props = {
   item: any | null;
   onClose: () => void;
   onDelete: () => void;
+  onFound: () => void;
 };
 
 function ConfirmModal({ open, title, message, onConfirm, onCancel }: ConfirmModalProps) {
@@ -30,6 +31,24 @@ function ConfirmModal({ open, title, message, onConfirm, onCancel }: ConfirmModa
   );
 }
 
+function ConfirmFoundModal({ open, title, message, onConfirm, onCancel }: ConfirmModalProps) {
+  if (!open) return null;
+
+  return (
+    <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true" onClick={onCancel}>
+      <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+        <img src="/Smile.svg" className={styles.confirmIcon} />
+        <h3 className={styles.confirmTitle}>{title}</h3>
+        <p className={styles.confirmMessage}>{message}</p>
+        <div className={styles.confirmActions}>
+          <button className={styles.cancelBtn} onClick={onCancel}>취소</button>
+          <button className={styles.realbutton} onClick={onConfirm}>찾았어요!</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type ConfirmModalProps = {
   open: boolean;
   title: string;
@@ -38,10 +57,11 @@ type ConfirmModalProps = {
   onCancel: () => void;
 };
 
-export default function DetailPage({ open, loading, item, onClose, onDelete }: Props) {
+export default function DetailPage({ open, loading, item, onClose, onDelete, onFound }: Props) {
   const router = useRouter();
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showFound, setShowFound] = useState(false);
   const mediaKey = item?.id;
 
   // 모달 open -> item.media_ids가 있을 때 Storage URL 비동기 로드
@@ -100,6 +120,15 @@ export default function DetailPage({ open, loading, item, onClose, onDelete }: P
     onDelete(); // 실제 삭제 로직 실행
     setShowConfirm(false); // 확인 모달 닫기
   };
+
+  const handleFoundClick = () => {
+    setShowFound(true); // 확인 모달 닫기
+  };
+
+  const handleConfirmFound = () => {
+    onDelete(); // 실제 삭제 로직 실행
+    setShowConfirm(false); // 확인 모달 닫기
+  };
   return (
     <div className={styles.detailOverlay} role="dialog" aria-modal="true" onClick={onClose}>
       <div className={styles.detailModal} onClick={(e) => e.stopPropagation()}>
@@ -154,9 +183,16 @@ export default function DetailPage({ open, loading, item, onClose, onDelete }: P
             </section>
 
             <div className={styles.actions}>
-              <button type="button" className={styles.popoverBtn} onClick={onClose}>닫기</button>
-              <button type="button" className={styles.popoverPrimary} onClick={() => { onClose(); router.push(`/my/register?id=${item.id}`); }}>수정</button>
-              <button type="button" className={styles.deleteBtn} onClick={handleDeleteClick}>삭제</button>
+              <button type="button" className={styles.foundBtn} onClick={handleFoundClick}>
+                찾았어요!
+              </button>
+
+              {/* 오른쪽 버튼 그룹 */}
+              <div className={styles.actionsRight}>
+                <button type="button" className={styles.popoverBtn} onClick={onClose}>닫기</button>
+                <button type="button" className={styles.popoverPrimary} onClick={() => { onClose(); router.push(`/my/register?id=${item.id}`); }}>수정</button>
+                <button type="button" className={styles.deleteBtn} onClick={handleDeleteClick}>삭제</button>
+              </div>
             </div>
           </div>
         ) : (
@@ -168,9 +204,16 @@ export default function DetailPage({ open, loading, item, onClose, onDelete }: P
           message="삭제된 분실물 정보는 복구할 수 없어요."
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowConfirm(false)}>
-          </ConfirmModal>
+        </ConfirmModal>
+        <ConfirmFoundModal
+          open={showFound}
+          title="정말 찾았나요?"
+          message="처리된 분실물 정보는 복구할 수 없어요."
+          onConfirm={handleConfirmFound}
+          onCancel={() => setShowFound(false)}>
+        </ConfirmFoundModal>
       </div>
     </div>
-    
+
   );
 }

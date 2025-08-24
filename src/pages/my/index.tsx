@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
 import { db, auth, storage } from "@/lib/firebase";
-import {doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import DetailPage from "./detail";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { ref as storageRef, deleteObject } from "firebase/storage";
@@ -33,7 +33,7 @@ function AlertModal({ open, message, onClose }: AlertModalProps) {
         <img src="/Smile.svg" className={styles.confirmIcon} />
         <h3 className={styles.confirmTitle}>
           <p className={styles.confirmMessage}>{message}
-            </p>
+          </p>
         </h3>
         <div className={styles.confirmActions}>
           {/* 버튼만 하나로 변경하고, 새로 만든 CSS 클래스를 적용합니다. */}
@@ -56,7 +56,7 @@ export default function MyPage() {
   const [detailItem, setDetailItem] = useState<any | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
+  const [showFoundModal, setShowFoundModal] = useState(false);
 
 
   // 페이지 번호 묶음 계산
@@ -143,58 +143,55 @@ export default function MyPage() {
   const paged = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const router = useRouter();
 
-  const handleDelete = async (itemId: string) => {
-    if (!user) {
-      alert('오류: 사용자 정보가 없습니다.');
+  const performDelete = async (itemId: string, onSuccess: () => void) => {
+    if (!user) return;
+
+    const rowToRemove = rows.find(row => row.id === itemId);
+    if (!rowToRemove) {
+      console.error("삭제할 아이템을 찾을 수 없습니다.");
+      alert("삭제 중 오류가 발생했습니다.");
       return;
     }
+    const itemObjectToRemove = rowToRemove.fullData;
 
     try {
-      // 1. Firestore 문서 경로 참조
-      const itemRef = doc(db, 'lost_items', user.uid);
-
-      // 2. Firestore에서 문서 삭제
-      const rowToRemove = rows.find(row => row.id === itemId);
-      if (!rowToRemove) {
-        throw new Error("삭제할 아이템을 찾을 수 없습니다.");
-      }
-      const itemObjectToRemove = rowToRemove.fullData;
-
+      // Storage에서 이미지 파일 삭제
       const mediaIds = itemObjectToRemove.media_ids;
       if (mediaIds && Array.isArray(mediaIds) && mediaIds.length > 0) {
-        console.log(`${mediaIds.length}개의 이미지 파일을 삭제합니다...`);
-        
-        // 각 파일에 대한 삭제 작업을 Promise 배열로 만듭니다.
         const deletePromises = mediaIds.map(filePath => {
           const fileRef = storageRef(storage, filePath);
-          return deleteObject(fileRef).catch(err => {
-            // 특정 파일 삭제에 실패하더라도 전체 프로세스가 멈추지 않도록 catch 처리
-            // (예: 이미 삭제되었거나 경로가 잘못된 파일)
-            console.warn(`파일 삭제 실패: ${filePath}`, err);
-          });
+          return deleteObject(fileRef).catch(err => console.warn(`파일 삭제 실패: ${filePath}`, err));
         });
-  
-        // 모든 삭제 작업을 병렬로 실행합니다.
         await Promise.all(deletePromises);
-        console.log("모든 이미지 파일 삭제 완료.");
       }
-      // 2. deleteDoc 대신 updateDoc과 arrayRemove를 사용하여 배열에서 해당 객체를 제거합니다.
-      await updateDoc(itemRef, {
+
+      // Firestore에서 배열 항목 삭제
+      const userDocRef = doc(db, 'lost_items', user.uid);
+      await updateDoc(userDocRef, {
         items: arrayRemove(itemObjectToRemove)
       });
 
-      // 3. 현재 화면의 목록(state)에서도 삭제된 항목 제거
+      // UI 상태 업데이트 및 성공 콜백 실행
       setRows(currentRows => currentRows.filter(row => row.id !== itemId));
-
-      // 4. 모달 닫기
       setDetailOpen(false);
-      setShowSuccessModal(true);
+      onSuccess(); // ◀️ 전달받은 성공 함수 실행
 
     } catch (err) {
       console.error("삭제 중 오류 발생: ", err);
       alert('삭제하는 중 오류가 발생했습니다.');
     }
   };
+
+  // 기존 삭제 핸들러
+  const handleDelete = (itemId: string) => {
+    performDelete(itemId, () => setShowSuccessModal(true));
+  };
+
+  // '찾았어요!' 버튼을 위한 새로운 핸들러
+  const handleFound = (itemId: string) => {
+    performDelete(itemId, () => setShowFoundModal(true));
+  };
+
   return (
     <main className={styles.main}>
       <Panel>
@@ -236,11 +233,11 @@ export default function MyPage() {
                 {!loading && !error && paged.map((r, i) => {
                   const index = (currentPage - 1) * PAGE_SIZE + i + 1;
                   const handleClick = () => {
-      // Firestore에 다시 요청하지 않고,
-      // 'r' 객체에 이미 담겨있는 원본 데이터(fullData)를 바로 사용합니다.
-      setDetailItem(r.fullData); 
-      setDetailOpen(true);
-    };
+                    // Firestore에 다시 요청하지 않고,
+                    // 'r' 객체에 이미 담겨있는 원본 데이터(fullData)를 바로 사용합니다.
+                    setDetailItem(r.fullData);
+                    setDetailOpen(true);
+                  };
                   return (
                     <tr
                       key={r.id}
@@ -318,11 +315,22 @@ export default function MyPage() {
           if (detailItem?.id) {
             handleDelete(detailItem.id);
           }
-        }} />
+        }}
+        onFound={() => {
+          if (detailItem?.id) {
+            handleFound(detailItem.id);
+          }
+        }}  
+        />
       <AlertModal
         open={showSuccessModal}
         message="삭제가 완료되었어요!"
         onClose={() => setShowSuccessModal(false)}
+      />
+      <AlertModal
+        open={showFoundModal}
+        message="찾았어요! 처리가 완료되었어요!"
+        onClose={() => setShowFoundModal(false)}
       />
     </main>
   );

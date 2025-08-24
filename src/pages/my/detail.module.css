@@ -161,12 +161,6 @@
   border: 2px dashed rgba(79,71,57,0.15);
 }
 
-.actions { 
-  display:flex; 
-  gap: 0.75rem; 
-  justify-content: flex-end; 
-  margin-top: 0.5rem; 
-}
 .loading, .error { text-align:center; color:#6b5f4e; padding: 1rem 0; }
 
 @media (min-width: 768px) {
@@ -230,11 +224,11 @@
   width: 100%;
 }
 
-.cancelBtn, .confirmBtn {
+.cancelBtn, .confirmBtn, .realbutton{
   flex: 1;
   border: none;
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: 16px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -255,4 +249,35 @@
 }
 .confirmBtn:hover {
   background: #dc2626;
+}
+
+.confirmBtn:hover {
+  background: #FAF1E6;
+}
+
+.actions { 
+  display: flex; 
+  gap: 0.75rem; 
+  justify-content: space-between; /* ◀️ 양쪽 정렬 */
+  align-items: center ; /* ◀️ 세로 중앙 정렬 */
+  margin-top: 0.5rem; 
+}
+
+/* 오른쪽 버튼들을 묶는 그룹 */
+.actionsRight {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* '찾았어요!' 버튼 스타일 */
+.foundBtn, .realbutton {
+  background: #FAF1E6; /* 옅은 하늘색 */
+  color: #000000; /* 진한 파란색 */
+  border: 1px solid #FAF1E6;
+  padding: 10px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 500; /* 글씨를 약간 두껍게 */
+  transition: background-color 0.2s;
 }
