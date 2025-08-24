@@ -9,7 +9,6 @@ import { categories } from "@/components/map/category/categoryData";
 import { useRef, useEffect } from "react";
 import { db, storage, auth } from "@/lib/firebase";
 import { collection, addDoc, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
-import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function RegisterPage() {
