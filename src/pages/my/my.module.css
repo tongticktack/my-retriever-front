@@ -257,7 +257,7 @@
 }
 
 .confirmMessage {
-  font-size: 1rem;
+  font-size: 1.5rem;
   color: #666;
   margin: 0;
   white-space: pre-wrap; /* \n 줄바꿈 인식 */

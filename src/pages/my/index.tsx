@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
-import { db, auth } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { db, auth, storage } from "@/lib/firebase";
+import {doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import DetailPage from "./detail";
 import { onAuthStateChanged, User } from "firebase/auth";
-
+import { ref as storageRef, deleteObject } from "firebase/storage";
 type TableRow = {
   id: string;
   major: string; // extracted.category
@@ -31,8 +31,10 @@ function AlertModal({ open, message, onClose }: AlertModalProps) {
     <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true">
       <div className={styles.confirmModal}>
         <img src="/Smile.svg" alt="smile" className={styles.confirmIcon} />
-        <h3 className={styles.confirmTitle}>알림</h3>
-        <p className={styles.confirmMessage}>{message}</p>
+        <h3 className={styles.confirmTitle}>
+          <p className={styles.confirmMessage}>{message}
+            </p>
+        </h3>
         <div className={styles.confirmActions}>
           {/* 버튼만 하나로 변경하고, 새로 만든 CSS 클래스를 적용합니다. */}
           <button className={styles.alertOkBtn} onClick={onClose}>확인</button>
@@ -152,7 +154,34 @@ export default function MyPage() {
       const itemRef = doc(db, 'lost_items', user.uid);
 
       // 2. Firestore에서 문서 삭제
-      await deleteDoc(itemRef);
+      const rowToRemove = rows.find(row => row.id === itemId);
+      if (!rowToRemove) {
+        throw new Error("삭제할 아이템을 찾을 수 없습니다.");
+      }
+      const itemObjectToRemove = rowToRemove.fullData;
+
+      const mediaIds = itemObjectToRemove.media_ids;
+      if (mediaIds && Array.isArray(mediaIds) && mediaIds.length > 0) {
+        console.log(`${mediaIds.length}개의 이미지 파일을 삭제합니다...`);
+        
+        // 각 파일에 대한 삭제 작업을 Promise 배열로 만듭니다.
+        const deletePromises = mediaIds.map(filePath => {
+          const fileRef = storageRef(storage, filePath);
+          return deleteObject(fileRef).catch(err => {
+            // 특정 파일 삭제에 실패하더라도 전체 프로세스가 멈추지 않도록 catch 처리
+            // (예: 이미 삭제되었거나 경로가 잘못된 파일)
+            console.warn(`파일 삭제 실패: ${filePath}`, err);
+          });
+        });
+  
+        // 모든 삭제 작업을 병렬로 실행합니다.
+        await Promise.all(deletePromises);
+        console.log("모든 이미지 파일 삭제 완료.");
+      }
+      // 2. deleteDoc 대신 updateDoc과 arrayRemove를 사용하여 배열에서 해당 객체를 제거합니다.
+      await updateDoc(itemRef, {
+        items: arrayRemove(itemObjectToRemove)
+      });
 
       // 3. 현재 화면의 목록(state)에서도 삭제된 항목 제거
       setRows(currentRows => currentRows.filter(row => row.id !== itemId));
