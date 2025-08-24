@@ -2,11 +2,11 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
-import { db, auth } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { db, auth, storage } from "@/lib/firebase";
+import {doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import DetailPage from "./detail";
 import { onAuthStateChanged, User } from "firebase/auth";
-
+import { ref as storageRef, deleteObject } from "firebase/storage";
 type TableRow = {
   id: string;
   major: string; // extracted.category
@@ -30,8 +30,10 @@ function AlertModal({ open, message, onClose }: AlertModalProps) {
     <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true">
       <div className={styles.confirmModal}>
         <img src="/Smile.svg" alt="smile" className={styles.confirmIcon} />
-        <h3 className={styles.confirmTitle}>알림</h3>
-        <p className={styles.confirmMessage}>{message}</p>
+        <h3 className={styles.confirmTitle}>
+          <p className={styles.confirmMessage}>{message}
+            </p>
+        </h3>
         <div className={styles.confirmActions}>
           {/* 버튼만 하나로 변경하고, 새로 만든 CSS 클래스를 적용합니다. */}
           <button className={styles.alertOkBtn} onClick={onClose}>확인</button>

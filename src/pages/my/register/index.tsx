@@ -37,53 +37,63 @@ export default function RegisterPage() {
   const [showReview, setShowReview] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
+// url 쿼리로 폼 채우기
   useEffect(() => {
-    return () => {
-      newPreviews.forEach((p) => URL.revokeObjectURL(p));
-    };
-  }, [newPreviews]);
+    // 1. 라우터가 준비되지 않았으면 아무 작업도 하지 않습니다.
+    if (!router.isReady) return;
 
-  // url 쿼리로 폼 채우기
-  useEffect(() => {
-    const { id } = router.query;
-    if (!id) return;
+    // 2. URL 쿼리에서 id를 가져옵니다. (타입: string | string[] | undefined)
+    const { id: queryId } = router.query;
+
+    // 3. 만약 id가 배열이면 첫 번째 요소를, 문자열이면 그 값을 사용합니다.
+    const id = Array.isArray(queryId) ? queryId[0] : queryId;
+
+    // 4. 최종적으로 id가 유효한 문자열이 아닐 경우, 함수를 종료합니다. (신규 등록 모드)
+    if (!id) {
+      // 혹시 모를 editId 상태를 초기화해줍니다.
+      setEditId(null);
+      return;
+    }
+
     const load = async () => {
       try {
-        // 로그인 사용자 확인
-        const userId = auth?.currentUser?.uid || null;
+        const userId = auth?.currentUser?.uid;
         if (!userId) return;
 
-        //firebase 문서 참조 (lost_items->items)
         const docRef = doc(db, "lost_items", userId);
         const snap = await getDoc(docRef);
-        if (!snap.exists()) return;
-
-  const raw = snap.data();
-  const data = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {};
-  const exRaw = data.extracted;
-  const ex = (exRaw && typeof exRaw === 'object') ? exRaw as Record<string, unknown> : {};
-
-  setMainCategory(typeof ex.category === 'string' ? ex.category : "");
-  setSubCategory(typeof ex.subcategory === 'string' ? ex.subcategory : "");
-  setPlace(typeof ex.region === 'string' ? ex.region : "");
-  setDate(typeof ex.lost_date === 'string' ? ex.lost_date : "");
-  setItemName(typeof data.item_name === 'string' ? data.item_name : "");
-  setNote(typeof data.note === 'string' ? data.note : "");
-
-        // DB 저장 미디어 경로 정규화
-        const rawMedia = (data.media_ids ?? []) as unknown;
-        let ids: string[] = [];
-        if (Array.isArray(rawMedia)) {
-          ids = rawMedia.filter(Boolean) as string[];
-        } else if (typeof rawMedia === 'string' && rawMedia.trim()) {
-          ids = rawMedia.split(',').map((s) => s.trim()).filter(Boolean);
+        if (!snap.exists()) {
+          console.warn("사용자 문서를 찾을 수 없습니다.");
+          return;
         }
-        setExistingMediaIds(ids);
 
-        if (ids.length) {
+        const itemsArray = snap.data().items || [];
+        const itemToEdit = itemsArray.find((item: any) => item.id === id);
+
+        if (!itemToEdit) {
+          console.warn(`ID '${id}'에 해당하는 아이템을 배열에서 찾을 수 없습니다.`);
+          return;
+        }
+
+        // 5. 찾은 데이터로 폼 상태를 채우고, 올바른 id를 editId에 저장합니다.
+        const data = itemToEdit;
+        const ex = data.extracted || {};
+        setMainCategory(ex.category || "");
+        setSubCategory(ex.subcategory || "");
+        setPlace(ex.region || "");
+        setDate(ex.lost_date || "");
+        setItemName(data.item_name || "");
+        setNote(data.note || "");
+        setEditId(id); // ◀️ 여기서 올바른 id가 저장됩니다.
+
+        // 미디어 경로 처리
+        const mediaIds = data.media_ids || [];
+        setExistingMediaIds(mediaIds);
+
+        if (mediaIds.length) {
           try {
             const urls = await Promise.all(
-              ids.map(async (mid) => {
+              mediaIds.map(async (mid: string) => {
                 const path = mid.includes('/') ? mid : `lost/${mid}`;
                 const r = storageRef(storage, path);
                 return await getDownloadURL(r);
@@ -98,15 +108,13 @@ export default function RegisterPage() {
           setExistingPreviewUrls([]);
         }
 
-        setEditId(String(id));
       } catch (err) {
         console.error('failed to load item for edit', err);
       }
     };
+    
     load();
-  // router.query 객체 자체를 의존하지 않고 id 변화만 트리거
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.query?.id]);
+  }, [router.isReady, router.query]); // 의존성 배열
 
   // 사용자 선택 파일 준비 및 저장
   function handleFiles(files: FileList | File[]) {
@@ -193,7 +201,7 @@ export default function RegisterPage() {
             media_ids: mediaIds,
             item_name: itemName,
             note: note,
-            is_found: false,    
+            is_found: false,
             created_at: new Date(),
             updated_at: new Date(),
           };
