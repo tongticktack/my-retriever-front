@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { LostItem } from './types';
 
-let cachedData: {
+const cachedData: {
   portal: LostItem[] | null;
   police: LostItem[] | null;
 } = {
