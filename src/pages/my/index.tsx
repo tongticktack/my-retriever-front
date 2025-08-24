@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
 import { db, auth, storage } from "@/lib/firebase";
-import {doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import DetailPage from "./detail";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { ref as storageRef, deleteObject } from "firebase/storage";
@@ -32,7 +32,7 @@ function AlertModal({ open, message, onClose }: AlertModalProps) {
         <img src="/Smile.svg" className={styles.confirmIcon} />
         <h3 className={styles.confirmTitle}>
           <p className={styles.confirmMessage}>{message}
-            </p>
+          </p>
         </h3>
         <div className={styles.confirmActions}>
           {/* 버튼만 하나로 변경하고, 새로 만든 CSS 클래스를 적용합니다. */}
@@ -55,7 +55,7 @@ export default function MyPage() {
   const [detailItem, setDetailItem] = useState<any | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
+  const [showFoundModal, setShowFoundModal] = useState(false);
 
 
   // 페이지 번호 묶음 계산
@@ -182,11 +182,11 @@ export default function MyPage() {
                 {!loading && !error && paged.map((r, i) => {
                   const index = (currentPage - 1) * PAGE_SIZE + i + 1;
                   const handleClick = () => {
-      // Firestore에 다시 요청하지 않고,
-      // 'r' 객체에 이미 담겨있는 원본 데이터(fullData)를 바로 사용합니다.
-      setDetailItem(r.fullData); 
-      setDetailOpen(true);
-    };
+                    // Firestore에 다시 요청하지 않고,
+                    // 'r' 객체에 이미 담겨있는 원본 데이터(fullData)를 바로 사용합니다.
+                    setDetailItem(r.fullData);
+                    setDetailOpen(true);
+                  };
                   return (
                     <tr
                       key={r.id}
@@ -262,11 +262,22 @@ export default function MyPage() {
           if (detailItem?.id) {
             handleDelete(detailItem.id);
           }
-        }} />
+        }}
+        onFound={() => {
+          if (detailItem?.id) {
+            handleFound(detailItem.id);
+          }
+        }}  
+        />
       <AlertModal
         open={showSuccessModal}
         message="삭제가 완료되었어요!"
         onClose={() => setShowSuccessModal(false)}
+      />
+      <AlertModal
+        open={showFoundModal}
+        message="찾았어요! 처리가 완료되었어요!"
+        onClose={() => setShowFoundModal(false)}
       />
     </main>
   );
