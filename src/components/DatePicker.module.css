@@ -1,0 +1,155 @@
+.wrapper {
+  position: relative;
+  display: inline-block;
+  font-size: 14px;
+}
+
+.trigger {
+  width: 100%;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: #222;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid #6c5ce7;
+  outline-offset: 2px;
+}
+
+.placeholder {
+  color: #999;
+}
+
+.calendar {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  padding: 12px 12px 14px;
+  width: 260px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.calHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.monthLabel {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.navBtn {
+  border: none;
+  background: #f5f5f7;
+  color: #444;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.navBtn:hover:not(:disabled) {
+  background: #ececf1;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dow,
+.dayBtn {
+  font-size: 12px;
+  text-align: center;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  border-radius: 8px;
+}
+
+.dow {
+  font-weight: 600;
+  color: #666;
+}
+
+.dayBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  font: inherit;
+  color: #222;
+}
+
+.dayBtn:hover:not(.disabled):not(.selected) {
+  background: #f0f4ff;
+}
+
+.selected {
+  background: #6c5ce7;
+  color: #fff;
+  font-weight: 600;
+}
+
+.today:not(.selected) {
+  outline: 2px solid #6c5ce7;
+  outline-offset: -2px;
+}
+
+.disabled {
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+.weekend {
+  color: #d63031;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.chevron {
+  font-size: 12px;
+  opacity: 0.7;
+}
