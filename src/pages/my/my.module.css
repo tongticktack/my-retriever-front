@@ -8,17 +8,7 @@
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   text-align: center;
-  position: relative;
-}
-
-/* header 밑에 구분선 넣으려고 가상 요소 사용 */
-.header::after {
-  content: "";
-  display: block;
-  width: 92%;
-  height: 0.5px;
-  background: #4F4739;
-  margin: 22px auto 0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .title {
@@ -56,7 +46,8 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  border-radius: 16px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
   overflow: hidden;
 }
 
@@ -126,6 +117,7 @@
 }
 
 .messageBox {
+  margin-top: 90px;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
@@ -139,7 +131,7 @@
   font-size: 2rem;
   padding: 1rem 1.5rem;
 }
-.messageBox img { width: 112px; height: 112px; }
+.messageBox img { width: 80% }
 
 .pagination {
   display: flex;

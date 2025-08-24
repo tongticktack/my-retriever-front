@@ -237,7 +237,6 @@ export default function FindItemsPage() {
                   <img 
                     src="/Sad.svg"
                     className={styles.messageImage}
-                    alt="no results"
                   />조건에 맞는 분실물이 없어요!
                   </div>
               )}

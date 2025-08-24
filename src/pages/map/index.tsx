@@ -52,6 +52,11 @@ export default function MapPage() {
     <main className={styles.main}>
       <Panel>
         <div className={styles.header}>
+          <h1 className={styles.title}>분실물 지도</h1>
+        </div>
+
+
+        <div className={styles.filterContainer}>
         
           <CategoryFilter onFilterChange={(main, sub) => {
             setMainCategory(main);
