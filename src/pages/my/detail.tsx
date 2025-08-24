@@ -9,13 +9,40 @@ type Props = {
   loading?: boolean;
   item: any | null;
   onClose: () => void;
+  onDelete: () => void;
 };
 
-export default function DetailPage({ open, loading, item, onClose }: Props) {
+function ConfirmModal({ open, title, message, onConfirm, onCancel }: ConfirmModalProps) {
+  if (!open) return null;
+
+  return (
+    <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true" onClick={onCancel}>
+      <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+        <img src="/Sad.svg" alt="warning" className={styles.confirmIcon} />
+        <h3 className={styles.confirmTitle}>{title}</h3>
+        <p className={styles.confirmMessage}>{message}</p>
+        <div className={styles.confirmActions}>
+          <button className={styles.cancelBtn} onClick={onCancel}>취소</button>
+          <button className={styles.confirmBtn} onClick={onConfirm}>확인</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ConfirmModalProps = {
+  open: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
+export default function DetailPage({ open, loading, item, onClose, onDelete }: Props) {
   const router = useRouter();
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
-
-  const mediaKey = item?.id; 
+  const [showConfirm, setShowConfirm] = useState(false);
+  const mediaKey = item?.id;
 
   // 모달 open -> item.media_ids가 있을 때 Storage URL 비동기 로드
   useEffect(() => {
@@ -65,6 +92,14 @@ export default function DetailPage({ open, loading, item, onClose }: Props) {
 
   if (!open) return null;
 
+  const handleDeleteClick = () => {
+    setShowConfirm(true); // window.confirm 대신 확인 모달 열기
+  };
+
+  const handleConfirmDelete = () => {
+    onDelete(); // 실제 삭제 로직 실행
+    setShowConfirm(false); // 확인 모달 닫기
+  };
   return (
     <div className={styles.detailOverlay} role="dialog" aria-modal="true" onClick={onClose}>
       <div className={styles.detailModal} onClick={(e) => e.stopPropagation()}>
@@ -121,12 +156,21 @@ export default function DetailPage({ open, loading, item, onClose }: Props) {
             <div className={styles.actions}>
               <button type="button" className={styles.popoverBtn} onClick={onClose}>닫기</button>
               <button type="button" className={styles.popoverPrimary} onClick={() => { onClose(); router.push(`/my/register?id=${item.id}`); }}>수정</button>
+              <button type="button" className={styles.deleteBtn} onClick={handleDeleteClick}>삭제</button>
             </div>
           </div>
         ) : (
           <div className={styles.error}>데이터를 불러올 수 없습니다.</div>
         )}
+        <ConfirmModal
+          open={showConfirm}
+          title="정말 삭제할까요?"
+          message="삭제된 분실물 정보는 복구할 수 없어요."
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowConfirm(false)}>
+          </ConfirmModal>
       </div>
     </div>
+    
   );
 }

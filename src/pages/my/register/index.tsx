@@ -444,7 +444,7 @@ export default function RegisterPage() {
             <button className={styles.submit} type="button" disabled={saving} onClick={handleRegisterClick}>
               {saving ? "저장중..." : (editId ? "수정" : "등록")}
             </button>
-            <button className={styles.floatingButton} type="button" onClick={() => router.push('/my')}>
+            <button className={styles.backButton} type="button" onClick={() => router.push('/my')}>
             <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
             <span>목록으로 돌아가기</span>
           </button>
@@ -452,12 +452,11 @@ export default function RegisterPage() {
         </form>
       </Panel>
 
-  {/* editId 유무 -> 수정, 등록 선택  */} 
+                
   {showSuccess && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <img src="/Smile.svg" alt="smile" />
-            {/* editId 유무 -> 수정, 등록 문구 선택  */}
             <p className={styles.modalText}>{editId ? "수정이 완료되었어요!" : "등록이 완료되었어요!"}</p>
             <button
               className={styles.modalClose}

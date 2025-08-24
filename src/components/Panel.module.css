@@ -4,11 +4,11 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  min-height: calc(100vh - 4rem); /* default pages */
+  min-height: calc(100vh - 4rem);
+  /* default pages */
   display: flex;
   flex-direction: column;
   padding: 2rem 2rem 1.5rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
 }
 
 /* When placed inside a 100vh container (chat) we'll override min-height via inline class on parent */
@@ -16,10 +16,18 @@
   min-height: 100%;
 }
 
-.noPadding { padding: 0; }
+.noPadding {
+  padding: 0;
+}
 
-.scrollY { overflow-y: auto; }
+.scrollY {
+  overflow-y: auto;
+}
 
 @media (max-width: 768px) {
-  .panel { border-radius: 16px; padding: 1.5rem 1.25rem 1.25rem; min-height: calc(100vh - 3rem); }
+  .panel {
+    border-radius: 1.25rem;
+    padding: 1.5rem 1.25rem 1.25rem;
+    min-height: calc(100vh - 3rem);
+  }
 }

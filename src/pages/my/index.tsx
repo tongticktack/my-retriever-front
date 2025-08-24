@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
 import { db, auth } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, doc, getDoc, deleteDoc } from "firebase/firestore";
 import DetailPage from "./detail";
 import { onAuthStateChanged, User } from "firebase/auth";
 
@@ -15,7 +15,30 @@ type TableRow = {
   place: string; // extracted.region
 };
 
+type AlertModalProps = {
+  open: boolean;
+  message: string;
+  onClose: () => void;
+};
 
+function AlertModal({ open, message, onClose }: AlertModalProps) {
+  if (!open) return null;
+
+  // ConfirmModal과 동일한 CSS 클래스 이름을 사용합니다.
+  return (
+    <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true">
+      <div className={styles.confirmModal}>
+        <img src="/Smile.svg" alt="smile" className={styles.confirmIcon} />
+        <h3 className={styles.confirmTitle}>알림</h3>
+        <p className={styles.confirmMessage}>{message}</p>
+        <div className={styles.confirmActions}>
+          {/* 버튼만 하나로 변경하고, 새로 만든 CSS 클래스를 적용합니다. */}
+          <button className={styles.alertOkBtn} onClick={onClose}>확인</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 const PAGE_SIZE = 10;
 
 export default function MyPage() {
@@ -28,6 +51,9 @@ export default function MyPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<any | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+
 
   // 페이지 번호 묶음 계산
   const chunkSize = 10;
@@ -36,7 +62,7 @@ export default function MyPage() {
   const endPage = Math.min(startPage + chunkSize - 1, totalPages);
   const prevChunkStart = Math.max(1, startPage - chunkSize);
   const nextChunkStart = Math.min(totalPages, startPage + chunkSize);
-  
+
   // 사용자 인증 상태 감지 및 firebase에서 분실물 목록 불러오기
   useEffect(() => {
     let mounted = true;
@@ -76,7 +102,7 @@ export default function MyPage() {
           setRows(items);
           setTotalPages(Math.max(1, Math.ceil(items.length / PAGE_SIZE)));
           if (snap.size === 0) {
-            setError('등록하신 적이 없습니다 !');
+            setError('등록하신 분실물이 없어요!');
           } else {
             setError(null);
           }
@@ -227,7 +253,19 @@ export default function MyPage() {
           </button>
         </div>
       </Panel>
-
+        <DetailPage open={detailOpen}
+          loading={loadingDetail} item={detailItem}
+          onClose={() => setDetailOpen(false)}
+          onDelete={() => {
+            if (detailItem?.id) {
+              handleDelete(detailItem.id);
+            }
+          }} />
+        <AlertModal
+          open={showSuccessModal}
+          message="삭제가 완료되었어요!"
+          onClose={() => setShowSuccessModal(false)}
+        />
     </main>
   );
 }

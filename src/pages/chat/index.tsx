@@ -376,7 +376,7 @@ export default function ChatPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className={styles.main}>
-        <Panel className={styles.panelFull}>
+        <Panel>
           <div className={styles.panelHeader}>
             <div className={styles.panelHeaderRight}>
               {loading ? null : user ? (
@@ -529,7 +529,7 @@ export default function ChatPage() {
                   placeholder={user ? '나 오늘 성균관대역에서 파란색 지갑을 잃어버렸어.' : '나 오늘 오후 1시쯤 성균관대 근처에서 파란색 지갑을 잃어버렸어.'}
                 />
                 </div>
-                <div style={{ fontSize: '.65rem', color:'#9ca3af', marginTop:'4px' }}>
+                <div style={{ fontSize: '.65rem', color:'#9ca3af', marginTop:'3px' }}>
                   {isValidSessionId(sessionId) ? (
                     <>세션 ID: {sessionId}</>
                   ) : (

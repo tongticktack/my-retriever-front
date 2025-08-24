@@ -6,7 +6,7 @@
   color: #7a766f;
   text-decoration: none;
   border-left: 3px solid transparent;
-  border-radius: 12px;
+  border-radius: 16px;
   transition:
     background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
     color 0.35s ease,
