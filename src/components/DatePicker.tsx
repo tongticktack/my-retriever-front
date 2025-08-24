@@ -132,7 +132,7 @@ export default function DatePicker({ value, onChange, max, placeholder = '날짜
 
   if (inputClassName) {
     return (
-      <div className={styles.wrapper} ref={wrapRef}>
+      <div className={`${styles.wrapper} ${styles.fullWidth}`} ref={wrapRef}>
         <input
           type="text"
             aria-label={ariaLabel || placeholder}
