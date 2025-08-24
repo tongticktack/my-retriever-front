@@ -1,4 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
+import DatePicker from "@/components/DatePicker";
 import Image from "next/image";
 import router from "next/router";
 import Panel from "@/components/Panel";
@@ -7,6 +9,7 @@ import { categories } from "@/components/map/category/categoryData";
 import { useRef, useEffect } from "react";
 import { db, storage, auth } from "@/lib/firebase";
 import { collection, addDoc, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function RegisterPage() {
@@ -56,15 +59,17 @@ export default function RegisterPage() {
         const snap = await getDoc(docRef);
         if (!snap.exists()) return;
 
-        const data: any = snap.data();
-        const ex = data.extracted || {};
+  const raw = snap.data();
+  const data = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {};
+  const exRaw = data.extracted;
+  const ex = (exRaw && typeof exRaw === 'object') ? exRaw as Record<string, unknown> : {};
 
-        setMainCategory(ex.category || "");
-        setSubCategory(ex.subcategory || "");
-        setPlace(ex.region || "");
-        setDate(ex.lost_date || "");
-        setItemName(data.item_name || "");
-        setNote(data.note || "");
+  setMainCategory(typeof ex.category === 'string' ? ex.category : "");
+  setSubCategory(typeof ex.subcategory === 'string' ? ex.subcategory : "");
+  setPlace(typeof ex.region === 'string' ? ex.region : "");
+  setDate(typeof ex.lost_date === 'string' ? ex.lost_date : "");
+  setItemName(typeof data.item_name === 'string' ? data.item_name : "");
+  setNote(typeof data.note === 'string' ? data.note : "");
 
         // DB 저장 미디어 경로 정규화
         const rawMedia = (data.media_ids ?? []) as unknown;
@@ -100,7 +105,9 @@ export default function RegisterPage() {
       }
     };
     load();
-  }, [router.query]);
+  // router.query 객체 자체를 의존하지 않고 id 변화만 트리거
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.query?.id]);
 
   // 사용자 선택 파일 준비 및 저장
   function handleFiles(files: FileList | File[]) {
@@ -133,9 +140,9 @@ export default function RegisterPage() {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
-  // 필수 입력값 검증
+  // 필수 입력값 검증 (note 는 선택 사항으로 변경)
   const isValid = () => {
-    return place && date && itemName && mainCategory && subCategory && note;
+    return !!(place && date && itemName && mainCategory && subCategory);
   };
 
   // submit 함수
@@ -265,6 +272,25 @@ export default function RegisterPage() {
                       <span className={styles.chev}>▾</span>
                     </button>
 
+                  {openMain && (
+                    <div className={styles.options} role="listbox">
+                      {categories.map((c) => (
+                        <div
+                          key={c.main}
+                          className={styles.option}
+                          role="option"
+                          aria-selected={mainCategory === c.main}
+                          onClick={() => {
+                            setMainCategory(c.main);
+                            setSubCategory("");
+                            setOpenMain(false);
+                          }}
+                        >
+                          {c.main}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                     {openMain && (
                       <div className={styles.options} role="listbox">
                         {categories.map((c) => (
@@ -304,6 +330,28 @@ export default function RegisterPage() {
                       <span className={styles.chev}>▾</span>
                     </button>
 
+                  {openSub && (
+                    <div className={styles.options} role="listbox">
+                      {currentSubs.length === 0 ? (
+                        <div className={styles.optionDisabled}>대분류를 선택해주세요</div>
+                      ) : (
+                        currentSubs.map((s) => (
+                          <div
+                            key={s}
+                            className={styles.option}
+                            role="option"
+                            aria-selected={subCategory === s}
+                            onClick={() => {
+                              setSubCategory(s);
+                              setOpenSub(false);
+                            }}
+                          >
+                            {s}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                     {openSub && (
                       <div className={styles.options} role="listbox">
                         {currentSubs.length === 0 ? (
@@ -334,13 +382,17 @@ export default function RegisterPage() {
             <div className={styles.row}>
               <div className={styles.halfItem}>
                 <div className={styles.fieldWrap}>
-                  <input
-                    type="date"
-                    className={styles.input}
-                    aria-label="분실 일자"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
+                  <div className={styles.dateWrap}>
+                    <DatePicker value={date} onChange={setDate} max={new Date().toISOString().split('T')[0]} ariaLabel="분실 일자" inputClassName={styles.input} />
+                    {date && (
+                      <button
+                        type="button"
+                        className={styles.clearDateBtn}
+                        aria-label="날짜 지우기"
+                        onClick={() => setDate("")}
+                      >×</button>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className={styles.halfItem}>
@@ -420,6 +472,19 @@ export default function RegisterPage() {
                     {existingPreviewUrls.map((src, i) => (
                       <div key={`exist-${i}`} className={styles.previewItem}>
                         <img src={src} className={styles.previewImg} alt={`existing-${i}`} />
+                        {editId && (
+                          <button
+                            type="button"
+                            className={styles.removePhotoBtn}
+                            aria-label={`기존 사진 삭제 ${i + 1}`}
+                            title="사진 제거"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExistingPreviewUrls(prev => prev.filter((_, idx) => idx !== i));
+                              setExistingMediaIds(prev => prev.filter((_, idx) => idx !== i));
+                            }}
+                          >×</button>
+                        )}
                       </div>
                     ))}
                     {/* 새로 추가한 미디어 */}
