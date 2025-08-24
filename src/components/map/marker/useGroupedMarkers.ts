@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { LostItem, RepresentativeMarker } from '@/pages/map/types';
+import type { LostItem, RepresentativeMarker } from '@/lib/map/types';
 
 // 사진 없는 URL 상수 정의
 const NO_IMAGE_URL1 = 'https://www.lost112.go.kr/lostnfs/images/sub/img04_no_img.gif';

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LostItem } from '@/pages/map/types';
+import type { LostItem } from '@/lib/map/types';
 import styles from './Sidebar.module.css';
 interface ItemDetailProps {
   item: LostItem;

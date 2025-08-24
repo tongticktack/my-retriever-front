@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CustomOverlayMap, MarkerClusterer } from 'react-kakao-maps-sdk';
-import type { RepresentativeMarker } from '@/pages/map/types';
+import type { RepresentativeMarker } from '@/lib/map/types';
 
 interface MarkersProps {
   markers: RepresentativeMarker[];

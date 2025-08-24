@@ -2,10 +2,10 @@ import Panel from "@/components/Panel";
 import styles from "./map.module.css";
 import dynamic from 'next/dynamic';
 import { useState, useMemo } from 'react';
-import { useLostItems } from './useLostItems';
+import { useLostItems } from '@/lib/map/useLostItems';
 import { useGroupedMarkers } from '@/components/map/marker/useGroupedMarkers';
 import Markers from '@/components/map/marker/Markers';
-import type { LostItem, RepresentativeMarker } from './types';
+import type { LostItem, RepresentativeMarker } from '@/lib/map/types';
 import Sidebar from "@/components/map/sidebar/Sidebar";
 import CategoryFilter from "@/components/map/category/CategoryFilter";
 

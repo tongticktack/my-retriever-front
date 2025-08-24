@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { LostItem } from '@/pages/map/types';
+import type { LostItem } from '@/lib/map/types';
 import styles from './Sidebar.module.css';
 import ItemDetail from './ItemDetail';
 

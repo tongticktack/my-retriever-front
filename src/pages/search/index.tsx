@@ -3,10 +3,10 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import DatePicker from '@/components/DatePicker';
-import { useLostItems } from '../map/useLostItems';
+import { useLostItems } from '@/lib/map/useLostItems';
 import { categories } from '@/components/map/category/categoryData';
 import styles from './search.module.css';
-import type { LostItem } from '../map/types';
+import type { LostItem } from '@/lib/map/types';
 import Panel from "@/components/Panel";
 const PAGE_SIZE = 12;
 const PAGE_CHUNK_SIZE = 10;
