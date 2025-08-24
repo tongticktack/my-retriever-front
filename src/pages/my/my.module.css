@@ -5,13 +5,28 @@
 }
 
 .header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  text-align: center;
+  position: relative;
+}
+
+/* header 밑에 구분선 넣으려고 가상 요소 사용 */
+.header::after {
+  content: "";
+  display: block;
+  width: 92%;
+  height: 0.5px;
+  background: #4F4739;
+  margin: 22px auto 0;
 }
 
 .title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #1f2937;
+  font-size: 1.5rem;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-weight: 700;
+  color: #4F4739;
+  margin: 0 auto;
 }
 
 .content {
@@ -25,4 +40,194 @@
 .description {
   font-size: 1.125rem;
   color: #6b7280;
+}
+
+.container {
+  position: relative;
+}
+
+
+.tableWrap {
+  padding: 1.25rem 1rem 3.5rem;
+  position: relative;
+  min-height: 420px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableHeaderRow th {
+  background: #4F4739;
+  color: #fff;
+  padding: 0.9rem 1rem;
+  text-align: center; 
+  vertical-align: middle;
+  font-weight: 700;
+}
+
+.tableDataRow td {
+  padding: 0.9rem 1rem;
+  text-align: center;
+  vertical-align: middle;
+  background: #fff;
+  color: #4F4739;
+  font-weight: 400;
+  border-bottom: 0.1px solid #CBC8C4;
+}
+
+.tableDataRow[role="button"] {
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  will-change: transform, box-shadow;
+}
+
+.tableDataRow[role="button"]:focus {
+  outline: none;
+  box-shadow: 0 10px 6px rgba(79,71,57,0.06), 0 0 15 4px rgba(79,71,57,0.06);
+  transform: translateY(-1px);
+}
+
+.emptyRow { height: 420px; }
+.emptyCell {
+  background: transparent;
+}
+
+.messageCell {
+  background: #fff;
+  color: #4F4739;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-weight: 400;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+}
+.messageCell img {
+  width: 56px;
+  height: 56px;
+  display: block;
+}
+
+.tableOverlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.messageBox {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: transparent;
+  color: #4F4739;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-weight: 400;
+  font-size: 2rem;
+  padding: 1rem 1.5rem;
+}
+.messageBox img { width: 112px; height: 112px; }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  --pg-gap: 0.75rem;
+  gap: var(--pg-gap);
+  margin-top: 2.5rem;
+}
+
+.pageNumbers {
+  display: flex;
+  gap: var(--pg-gap);
+  color: #9ca3af;
+  font-size: 0.85rem;
+  align-items: center;
+}
+
+.pageNumbers button {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.pageNumbers button:hover,
+.pageNumbers button:focus {
+  color: #6b7280;
+  outline: none;
+}
+
+.pageNumbers .current {
+  color: #4F4739;
+  font-weight: 700;
+}
+
+.nextArrow {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: #4F4739;
+  cursor: pointer;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prevArrow {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: #4F4739;
+  cursor: pointer;
+  padding: 0 0.35rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floatingButton {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  background: #FAF1E6;
+  color: #000000;
+  border: none;
+  padding: 0.6rem 0.8rem;
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 0px 15x rgba(79,71,57,0.25);
+}
+
+.floatingButton:hover { transform: translateY(-1px); }
+
+
+@media (max-width: 768px) {
+  .tableHeaderRow th { padding: 0.6rem 0.6rem; }
+  .emptyRow { height: 240px; }
 }
