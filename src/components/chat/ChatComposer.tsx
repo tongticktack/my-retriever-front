@@ -19,10 +19,13 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const composingRef = useRef(false); // IME 조합 중 여부
-  const allowedTypes = useRef(new Set(['image/png','image/jpeg']));
+  // 허용되는 이미지 타입: 기존 png/jpeg 에서 모든 image/* 로 확장
+  const allowAnyImage = useRef(true);
+  const allowedTypes = useRef(new Set(['image/png','image/jpeg'])); // fallback (allowAnyImage=false 인 경우 사용)
   const MAX_ATTACHMENTS = 3;
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per image
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per image
   const [notice, setNotice] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const showNotice = useCallback((msg: string) => {
     setNotice(msg);
   }, []);
@@ -32,15 +35,17 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
     return () => clearTimeout(t);
   }, [notice]);
 
-  const handleFiles = useCallback((fileList: FileList | null) => {
+  // FileList 또는 File[] 처리
+  const handleFiles = useCallback((fileList: FileList | File[] | null) => {
     if (!fileList) return;
-    const arr = Array.from(fileList);
+    const arr = Array.isArray(fileList) ? fileList : Array.from(fileList);
     let rejectedType = 0, rejectedSize = 0, rejectedOverLimit = 0;
     const newFiles: File[] = [];
     const existing = attachments;
     const currentLen = existing.length;
     for (const f of arr) {
-      if (!allowedTypes.current.has(f.type)) { rejectedType++; continue; }
+      const isImage = f.type.startsWith('image/');
+      if (!(allowAnyImage.current ? isImage : allowedTypes.current.has(f.type))) { rejectedType++; continue; }
       if (f.size > MAX_FILE_SIZE) { rejectedSize++; continue; }
       if (currentLen + newFiles.length >= MAX_ATTACHMENTS) { rejectedOverLimit++; break; }
       const dup = existing.some(e => e.name === f.name && e.size === f.size && e.lastModified === f.lastModified) || newFiles.some(e => e.name === f.name && e.size === f.size && e.lastModified === f.lastModified);
@@ -50,8 +55,8 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
     if (!newFiles.length) {
       if (rejectedType || rejectedSize || rejectedOverLimit) {
         const parts: string[] = [];
-        if (rejectedType) parts.push(`허용되지 않는 형식 ${rejectedType}개 (PNG/JPEG만 가능)`);
-        if (rejectedSize) parts.push(`5MB 초과 ${rejectedSize}개`);
+        if (rejectedType) parts.push(`허용되지 않는 형식 ${rejectedType}개 (이미지 파일만 가능)`);
+  if (rejectedSize) parts.push(`10MB 초과 ${rejectedSize}개`);
         if (rejectedOverLimit) parts.push(`최대 ${MAX_ATTACHMENTS}장 제한`);
         showNotice(parts.join(' · '));
       }
@@ -63,10 +68,10 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
       if (merged.length < MAX_ATTACHMENTS) merged.push(f);
     });
     onChangeAttachments(merged.slice(0, MAX_ATTACHMENTS));
-    if (rejectedType || rejectedSize || rejectedOverLimit) {
+  if (rejectedType || rejectedSize || rejectedOverLimit) {
       const parts: string[] = [];
       if (rejectedType) parts.push(`형식 제외 ${rejectedType}`);
-      if (rejectedSize) parts.push(`5MB 초과 ${rejectedSize}`);
+  if (rejectedSize) parts.push(`10MB 초과 ${rejectedSize}`);
       if (rejectedOverLimit) parts.push(`제한 초과`);
       showNotice(parts.join(' · '));
     }
@@ -76,16 +81,65 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
     if (composingRef.current) return; // 조합 중에는 전송 금지 (첫 글자 남는 문제 방지)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && value.trim()) {
+      if (!disabled && (value.trim() || attachments.length > 0)) {
         onSend();
         // 즉시 DOM 반영 강제 (React state 비동기 반영 중 IME race 방지)
         if (inputRef.current) inputRef.current.value = '';
       }
     }
-  }, [onSend, disabled, value]);
+  }, [onSend, disabled, value, attachments.length]);
 
   return (
-    <div className={styles.wrapper}>
+    <div
+      className={dragOver ? `${styles.wrapper} ${styles.dragOver}` : styles.wrapper}
+      onPaste={(e) => {
+        // 클립보드에서 이미지 붙여넣기 지원
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        const files: File[] = [];
+        for (const it of items) {
+          if (it.kind === 'file') {
+            const f = it.getAsFile();
+            if (f) files.push(f);
+          }
+        }
+        if (files.length) {
+          e.preventDefault();
+            handleFiles(files);
+        }
+      }}
+      onDragEnter={(e) => {
+        if (disabled) return;
+        if (e.dataTransfer?.items?.length) {
+          setDragOver(true);
+        }
+      }}
+      onDragOver={(e) => {
+        if (disabled) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      }}
+      onDragLeave={(e) => {
+        if (disabled) return;
+        if (e.currentTarget === e.target) setDragOver(false);
+      }}
+      onDrop={(e) => {
+        if (disabled) return;
+        e.preventDefault();
+        setDragOver(false);
+        const dt = e.dataTransfer;
+        if (!dt) return;
+        const fileList: File[] = [];
+        if (dt.files && dt.files.length) {
+          for (let i = 0; i < dt.files.length; i++) {
+            fileList.push(dt.files[i]);
+          }
+        }
+        if (fileList.length) {
+          handleFiles(fileList);
+        }
+      }}
+    >
       {attachments.length > 0 && (
         <div className={`${styles.attachments} ${styles.attachmentsTop}`} aria-label="선택된 이미지">
           {attachments.map((f, idx) => {
@@ -120,7 +174,7 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg"
+          accept="image/*"
           multiple
           style={{ display: 'none' }}
           onChange={e => {
@@ -171,7 +225,7 @@ export default function ChatComposer({ value, onChange, onSend, disabled, placeh
       onSend();
       requestAnimationFrame(() => { inputRef.current?.focus(); });
     }}
-    disabled={disabled || sending || !value.trim()}
+    disabled={disabled || sending || (!value.trim() && attachments.length === 0)}
     aria-live="polite"
   >
           {sending ? <span className={styles.spinner} aria-label="전송중" /> : '전송'}
