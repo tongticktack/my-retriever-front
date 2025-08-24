@@ -185,15 +185,7 @@ export default function FindItemsPage() {
           />
           {sortOrDate === 'date' && (
             <div className={styles.dateInputWrap}>
-              <DatePicker value={selectedDate} onChange={(v)=>{ setSelectedDate(v); resetPage(); }} max={new Date().toISOString().split('T')[0]} ariaLabel="검색 날짜" inputClassName={styles.dateInput} />
-              {selectedDate && (
-                <button
-                  type="button"
-                  className={styles.clearDateBtn}
-                  aria-label="날짜 지우기"
-                  onClick={() => { setSelectedDate(''); resetPage(); }}
-                >×</button>
-              )}
+              <DatePicker value={selectedDate} onChange={(v)=>{ setSelectedDate(v); resetPage(); }} max={new Date().toLocaleDateString('en-CA')} ariaLabel="검색 날짜" inputClassName={styles.dateInput} />
             </div>
           )}
           <div className={styles.checkboxContainer}>
@@ -237,6 +229,7 @@ export default function FindItemsPage() {
                   <img 
                     src="/Sad.svg"
                     className={styles.messageImage}
+                    alt="no results"
                   />조건에 맞는 분실물이 없어요!
                   </div>
               )}

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
 import { db, auth, storage } from "@/lib/firebase";
@@ -140,6 +141,56 @@ export default function MyPage() {
   }, []);
 
   const paged = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const router = useRouter();
+
+  const performDelete = async (itemId: string, onSuccess: () => void) => {
+    if (!user) return;
+
+    const rowToRemove = rows.find(row => row.id === itemId);
+    if (!rowToRemove) {
+      console.error("삭제할 아이템을 찾을 수 없습니다.");
+      alert("삭제 중 오류가 발생했습니다.");
+      return;
+    }
+    const itemObjectToRemove = rowToRemove.fullData;
+
+    try {
+      // Storage에서 이미지 파일 삭제
+      const mediaIds = itemObjectToRemove.media_ids;
+      if (mediaIds && Array.isArray(mediaIds) && mediaIds.length > 0) {
+        const deletePromises = mediaIds.map(filePath => {
+          const fileRef = storageRef(storage, filePath);
+          return deleteObject(fileRef).catch(err => console.warn(`파일 삭제 실패: ${filePath}`, err));
+        });
+        await Promise.all(deletePromises);
+      }
+
+      // Firestore에서 배열 항목 삭제
+      const userDocRef = doc(db, 'lost_items', user.uid);
+      await updateDoc(userDocRef, {
+        items: arrayRemove(itemObjectToRemove)
+      });
+
+      // UI 상태 업데이트 및 성공 콜백 실행
+      setRows(currentRows => currentRows.filter(row => row.id !== itemId));
+      setDetailOpen(false);
+      onSuccess(); // ◀️ 전달받은 성공 함수 실행
+
+    } catch (err) {
+      console.error("삭제 중 오류 발생: ", err);
+      alert('삭제하는 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 기존 삭제 핸들러
+  const handleDelete = (itemId: string) => {
+    performDelete(itemId, () => setShowSuccessModal(true));
+  };
+
+  // '찾았어요!' 버튼을 위한 새로운 핸들러
+  const handleFound = (itemId: string) => {
+    performDelete(itemId, () => setShowFoundModal(true));
+  };
 
   return (
     <main className={styles.main}>
@@ -249,10 +300,12 @@ export default function MyPage() {
             )}
           </section>
 
-          <button className={styles.floatingButton} type="button">
-            <Image src="/pawIcon-white.svg" alt="paw" width={25} height={25} />
+          {/* 🔹 분실물 등록 버튼 (로그인 상태일 때만) */}
+          {user && (<button className={styles.floatingButton} type="button" onClick={() => router.push('/my/register')}>
+            <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
             <span>분실물 등록</span>
           </button>
+          )}
         </div>
       </Panel>
       <DetailPage open={detailOpen}

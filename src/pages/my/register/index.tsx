@@ -8,7 +8,9 @@ import styles from "./register.module.css";
 import { categories } from "@/components/map/category/categoryData";
 import { useRef, useEffect } from "react";
 import { db, storage, auth } from "@/lib/firebase";
-import { collection, addDoc, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+
+interface ExtractedFields { category?: string; subcategory?: string; region?: string; lost_date?: string; }
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function RegisterPage() {
@@ -55,7 +57,7 @@ export default function RegisterPage() {
       return;
     }
 
-    const load = async () => {
+  const load = async () => {
       try {
         const userId = auth?.currentUser?.uid;
         if (!userId) return;
@@ -67,8 +69,9 @@ export default function RegisterPage() {
           return;
         }
 
-        const itemsArray = snap.data().items || [];
-        const itemToEdit = itemsArray.find((item: any) => item.id === id);
+  interface StoredItem { id: string; extracted?: ExtractedFields; media_ids?: string[]; item_name?: string; note?: string; is_found?: boolean; created_at?: string | Date; updated_at?: string | Date; }
+    const itemsArray: StoredItem[] = snap.data().items || [];
+    const itemToEdit = itemsArray.find((item) => item.id === id);
 
         if (!itemToEdit) {
           console.warn(`ID '${id}'에 해당하는 아이템을 배열에서 찾을 수 없습니다.`);
@@ -114,7 +117,9 @@ export default function RegisterPage() {
     };
     
     load();
-  }, [router.isReady, router.query]); // 의존성 배열
+  // id 값 변화만 감지 (router.query 객체 전체 의존 방지)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.query.id]);
 
   // 사용자 선택 파일 준비 및 저장
   function handleFiles(files: FileList | File[]) {
@@ -176,7 +181,8 @@ export default function RegisterPage() {
           const docSnap = await getDoc(userDocRef);
           if (docSnap.exists()) {
             const existingItems = docSnap.data().items || [];
-            const updatedItems = existingItems.map((item: any) => {
+            interface ExistingItem { id: string; extracted?: ExtractedFields; media_ids?: string[]; item_name?: string; note?: string; is_found?: boolean; created_at?: string | Date; updated_at?: string | Date; }
+            const updatedItems = existingItems.map((item: ExistingItem) => {
               if (item.id === editId) {
                 // 수정할 아이템을 찾아 내용 변경
                 return {
@@ -286,6 +292,26 @@ export default function RegisterPage() {
                             key={c.main}
                             className={styles.option}
                             role="option"
+                            aria-selected={mainCategory === c.main}
+                            onClick={() => {
+                              setMainCategory(c.main);
+                              setSubCategory("");
+                              setOpenMain(false);
+                            }}
+                          >
+                            {c.main}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {openMain && (
+                      <div className={styles.options} role="listbox">
+                        {categories.map((c) => (
+                          <div
+                            key={c.main}
+                            className={styles.option}
+                            role="option"
+                            aria-selected={mainCategory === c.main}
                             onClick={() => {
                               setMainCategory(c.main);
                               setSubCategory("");
@@ -328,6 +354,29 @@ export default function RegisterPage() {
                               key={s}
                               className={styles.option}
                               role="option"
+                              aria-selected={subCategory === s}
+                              onClick={() => {
+                                setSubCategory(s);
+                                setOpenSub(false);
+                              }}
+                            >
+                              {s}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                    {openSub && (
+                      <div className={styles.options} role="listbox">
+                        {currentSubs.length === 0 ? (
+                          <div className={styles.optionDisabled}>대분류를 선택해주세요</div>
+                        ) : (
+                          currentSubs.map((s) => (
+                            <div
+                              key={s}
+                              className={styles.option}
+                              role="option"
+                              aria-selected={subCategory === s}
                               onClick={() => {
                                 setSubCategory(s);
                                 setOpenSub(false);
@@ -350,14 +399,7 @@ export default function RegisterPage() {
                 <div className={styles.fieldWrap}>
                   <div className={styles.dateWrap}>
                     <DatePicker value={date} onChange={setDate} max={new Date().toISOString().split('T')[0]} ariaLabel="분실 일자" inputClassName={styles.input} />
-                    {date && (
-                      <button
-                        type="button"
-                        className={styles.clearDateBtn}
-                        aria-label="날짜 지우기"
-                        onClick={() => setDate("")}
-                      >×</button>
-                    )}
+                    {/* 날짜 지우기 버튼 제거 (요청에 따라) */}
                   </div>
                 </div>
               </div>

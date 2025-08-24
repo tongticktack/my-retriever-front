@@ -10,12 +10,14 @@
   width: 100%;
 }
 
+/* Button variant (not used when inputClassName is passed) */
 .trigger {
   width: 100%;
-  padding: 10px 12px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
+  height: 48px;
+  padding: 12px 14px;
+  background: var(--muted, #f3f4f6);
+  border: none;
+  border-radius: 16px;
   line-height: 1.2;
   cursor: pointer;
   text-align: left;
@@ -25,6 +27,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  box-sizing: border-box;
 }
 
 .trigger:focus-visible {
@@ -73,7 +76,7 @@
   font-size: 15px;
 }
 
-.navBtn {
+ .navBtn {
   border: none;
   background: #f5f5f7;
   color: #444;
@@ -85,7 +88,8 @@
   justify-content: center;
   cursor: pointer;
   font-size: 16px;
-}
+  transition: background .18s;
+ }
 
 .navBtn:hover:not(:disabled) {
   background: #ececf1;

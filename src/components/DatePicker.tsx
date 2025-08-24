@@ -11,9 +11,13 @@ interface DatePickerProps {
   inputClassName?: string; // 제공 시 기존 input 스타일 유지
 }
 
- function formatYMD(d: Date) {
-  return d.toISOString().split('T')[0];
- }
+function formatYMD(d: Date) {
+  // Local timezone safe formatting (avoids UTC shift from toISOString)
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
  function parse(value: string) {
   if (!value) return null;
