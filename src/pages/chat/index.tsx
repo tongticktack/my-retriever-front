@@ -533,7 +533,6 @@ export default function ChatPage() {
                                         {item.itemCategory && <span>{item.itemCategory}</span>}{item.itemCategory && (item.foundDate || item.storagePlace) && ' · '}
                                         {item.foundDate && <span>{item.foundDate}</span>}{item.foundDate && item.storagePlace && ' · '}
                                         {item.storagePlace && <span>{item.storagePlace}</span>}
-                                        {typeof item.score === 'number' && <span style={{marginLeft:6}}>({Math.round(item.score)}점)</span>}
                                       </div>
                                     </li>
                                   );
