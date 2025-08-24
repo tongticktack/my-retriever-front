@@ -1,4 +1,9 @@
-/* src/pages/map/map.module.css */
+:root {
+  --bg: #fff;
+  --muted: #f3f4f6;
+  --accent: #4F4739;
+}
+
 .main {
   min-height: 100vh;
   background-color: #faf1e6;
@@ -7,11 +12,27 @@
 
 .header {
   margin-bottom: 1.5rem;
-  /* 👈 [추가] 헤더 내부 아이템 정렬을 위해 추가 */
-  display: flex;
-  flex-direction: column;
+  padding-bottom: 1rem;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
 }
 
+.title {
+  font-size: 1.5rem;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
+  font-weight: 700;
+  color: #4F4739;
+  margin: 0 auto;
+}
+
+.filterContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 16px;
+  align-items: center;
+}
 .content {
   display: flex;
   flex-direction: column;

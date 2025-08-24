@@ -30,7 +30,7 @@ function AlertModal({ open, message, onClose }: AlertModalProps) {
   return (
     <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true">
       <div className={styles.confirmModal}>
-        <img src="/Smile.svg" alt="smile" className={styles.confirmIcon} />
+        <img src="/Smile.svg" className={styles.confirmIcon} />
         <h3 className={styles.confirmTitle}>
           <p className={styles.confirmMessage}>{message}
             </p>
