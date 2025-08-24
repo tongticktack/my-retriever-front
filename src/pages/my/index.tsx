@@ -14,6 +14,7 @@ type TableRow = {
   minor: string; // extracted.subcategory
   date: string;  // extracted.lost_date
   place: string; // extracted.region
+  fullData: any; // 전체 데이터 객체
 };
 
 type AlertModalProps = {
@@ -82,27 +83,41 @@ export default function MyPage() {
 
         try {
           // firebase에서 문서 불러오기
-          const itemsCol = collection(db, 'lost_items', currentUser.uid, 'items');
-          const q = query(itemsCol, orderBy('created_at', 'desc'), limit(500));
-          const snap = await getDocs(q);
+          const userDocRef = doc(db, 'lost_items', currentUser.uid);
 
-          const items: TableRow[] = snap.docs.map((d) => {
-            const data: any = d.data() as any;
-            const ex: any = data?.extracted ?? {};
-            return {
-              id: d.id,
-              major: String(ex.category ?? '-'),
-              minor: String(ex.subcategory ?? '-'),
-              date: String(ex.lost_date ?? '-'),
-              place: String(ex.region ?? '-'),
-            };
-          });
+          // 2. getDocs (여러 문서) 대신 getDoc (단일 문서)으로 가져옵니다.
+          const docSnap = await getDoc(userDocRef);
 
+          let items: TableRow[] = [];
+
+          // 3. 문서가 존재하면, 그 안의 'items' 배열 데이터를 가져옵니다.
+          if (docSnap.exists()) {
+            const itemsArray = docSnap.data().items || [];
+
+            // created_at 기준으로 내림차순 정렬 (배열이므로 클라이언트에서 정렬)
+            // Firestore Timestamp 객체는 toMillis()로 변환하여 비교합니다.
+            itemsArray.sort((a: any, b: any) =>
+              (b.created_at?.toMillis() ?? 0) - (a.created_at?.toMillis() ?? 0)
+            );
+
+            items = itemsArray.map((itemData: any) => {
+              const ex = itemData?.extracted ?? {};
+              return {
+                id: itemData.id,
+                major: String(ex.category ?? '-'),
+                minor: String(ex.subcategory ?? '-'),
+                date: String(ex.lost_date ?? '-'),
+                place: String(ex.region ?? '-'),
+                fullData: itemData,
+              };
+            });
+            setRows(items);
+          }
           if (!mounted) return;
           // 회원 중에 등록 기록이 없는 회원일 때
           setRows(items);
           setTotalPages(Math.max(1, Math.ceil(items.length / PAGE_SIZE)));
-          if (snap.size === 0) {
+          if (items.length === 0) {
             setError('등록하신 분실물이 없어요!');
           } else {
             setError(null);
@@ -134,7 +149,7 @@ export default function MyPage() {
 
     try {
       // 1. Firestore 문서 경로 참조
-      const itemRef = doc(db, 'lost_items', user.uid, 'items', itemId);
+      const itemRef = doc(db, 'lost_items', user.uid);
 
       // 2. Firestore에서 문서 삭제
       await deleteDoc(itemRef);
@@ -191,27 +206,12 @@ export default function MyPage() {
 
                 {!loading && !error && paged.map((r, i) => {
                   const index = (currentPage - 1) * PAGE_SIZE + i + 1;
-                  const handleClick = async () => {
-                    if (!user) return;
-                    try {
-                      setLoadingDetail(true);
-                      const dref = doc(db, 'lost_items', user.uid, 'items', r.id);
-                      const dsnap = await getDoc(dref);
-                      if (!dsnap.exists()) {
-                        setDetailItem(null);
-                        setDetailOpen(true);
-                      } else {
-                        setDetailItem({ id: dsnap.id, ...(dsnap.data() as any) });
-                        setDetailOpen(true);
-                      }
-                    } catch (err) {
-                      console.error('failed to load detail', err);
-                      setDetailItem(null);
-                      setDetailOpen(true);
-                    } finally {
-                      setLoadingDetail(false);
-                    }
-                  };
+                  const handleClick = () => {
+      // Firestore에 다시 요청하지 않고,
+      // 'r' 객체에 이미 담겨있는 원본 데이터(fullData)를 바로 사용합니다.
+      setDetailItem(r.fullData); 
+      setDetailOpen(true);
+    };
                   return (
                     <tr
                       key={r.id}
@@ -282,19 +282,19 @@ export default function MyPage() {
           )}
         </div>
       </Panel>
-        <DetailPage open={detailOpen}
-          loading={loadingDetail} item={detailItem}
-          onClose={() => setDetailOpen(false)}
-          onDelete={() => {
-            if (detailItem?.id) {
-              handleDelete(detailItem.id);
-            }
-          }} />
-        <AlertModal
-          open={showSuccessModal}
-          message="삭제가 완료되었어요!"
-          onClose={() => setShowSuccessModal(false)}
-        />
+      <DetailPage open={detailOpen}
+        loading={loadingDetail} item={detailItem}
+        onClose={() => setDetailOpen(false)}
+        onDelete={() => {
+          if (detailItem?.id) {
+            handleDelete(detailItem.id);
+          }
+        }} />
+      <AlertModal
+        open={showSuccessModal}
+        message="삭제가 완료되었어요!"
+        onClose={() => setShowSuccessModal(false)}
+      />
     </main>
   );
 }
