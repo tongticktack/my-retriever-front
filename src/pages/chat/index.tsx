@@ -5,6 +5,7 @@ import Panel from "@/components/Panel";
 import styles from "./chat.module.css";
 import { useAuth } from "@/context/AuthContext";
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+// matches 결과는 별도 synthetic 메시지(role:'matches') 대신 assistant 메시지 meta.matches 로 포함
 import ChatComposer from '@/components/chat/ChatComposer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -32,7 +33,7 @@ interface MatchItem {
   score?: number;
   [k: string]: unknown;
 }
-type ChatMessage = { role: 'user' | 'assistant' | 'matches'; content: string; ts: number; attachments?: ChatAttachment[]; meta?: { matches?: MatchItem[] } };
+type ChatMessage = { role: 'user' | 'assistant'; content: string; ts: number; attachments?: ChatAttachment[]; meta?: { matches?: MatchItem[] } };
 
 interface SendResponseShape {
   assistant?: unknown;
@@ -65,6 +66,7 @@ export default function ChatPage() {
   // const sessionStorageKey = useMemo(() => user ? `chat_session_${user.uid}` : 'chat_session_guest', [user]);
   const isValidSessionId = useCallback((sid: string | null | undefined) => !!sid && sid !== 'undefined' && sid !== 'null', []);
   const draftKey = useCallback((sid: string | null) => sid ? `chat_draft_${sid}` : 'chat_draft_new', []); // 유지 (세션 없을 때 임시 draft)
+  // 이전 구현에서 matches 를 별도 저장/복원 했지만 단순화를 위해 제거
   const inputRef = useRef('');
   useEffect(() => { inputRef.current = input; }, [input]);
 
@@ -109,7 +111,7 @@ export default function ChatPage() {
         }
       }
       const data = await res.json();
-      type RawMsg = { role?: unknown; content?: unknown; ts?: unknown; created_at?: unknown; attachments?: unknown };
+  type RawMsg = { role?: unknown; content?: unknown; ts?: unknown; created_at?: unknown; attachments?: unknown; matches?: unknown };
       const rawList: RawMsg[] = Array.isArray(data.messages) ? data.messages : Array.isArray(data) ? data : [];
       const mapped: ChatMessage[] = rawList.map((m, idx) => {
         let content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
@@ -135,14 +137,22 @@ export default function ChatPage() {
             } as ChatAttachment;
           }).filter((x: ChatAttachment | null): x is ChatAttachment => !!x);
         }
+        // matches parsing
+        let matches: MatchItem[] | undefined;
+        const maybeMatches = (m as unknown as { matches?: unknown }).matches;
+        if (Array.isArray(maybeMatches) && maybeMatches.length) {
+          matches = maybeMatches as MatchItem[];
+        }
         return {
           role: m.role === 'assistant' ? 'assistant' : 'user',
           content,
           ts,
           attachments,
+          meta: matches ? { matches } : undefined,
         };
       });
-      setMessages(mapped);
+  // Inject persisted matches (client-only synthetic messages)
+  setMessages(mapped);
       setError(null);
     } catch (e) {
       const err = e as unknown;
@@ -211,7 +221,7 @@ export default function ChatPage() {
   // (이전 구현 잔여) 별도 업로드 헬퍼 사용하지 않음
 
   const sendMessage = useCallback(async () => {
-    if (!input.trim()) return; // text required (no image-only)
+    if (!input.trim() && attachments.length === 0) return; // text or image required
     if (input.length > MAX_INPUT) return;
     const now = Date.now();
     if (now - lastSendRef.current < RATE_LIMIT_MS) return; // rate limit
@@ -236,14 +246,25 @@ export default function ChatPage() {
       let newlyCreated = false;
       if (!isValidSessionId(currentSession)) {
         const sessionCreateHeaders: Record<string,string> = { 'Content-Type': 'application/json', ...authHeaders };
-        const sessionResp = await fetch(`${API_BASE}/chat/session`, {
-          method:'POST',
-          headers: sessionCreateHeaders,
-          body: JSON.stringify({ user_id: user ? user.uid : null })
-        });
-        if (!sessionResp.ok) throw new Error('세션 생성 실패');
-        const sData = await sessionResp.json();
-        currentSession = sData.session_id || sData.id;
+        let sessionResp: Response | null = null;
+        try {
+          sessionResp = await fetch(`${API_BASE}/chat/session`, {
+            method:'POST',
+            headers: sessionCreateHeaders,
+            body: JSON.stringify({ user_id: user ? user.uid : null })
+          });
+        } catch {
+          throw new Error('세션 생성 실패: 네트워크 오류');
+        }
+        let sData: unknown = {};
+        try { sData = await sessionResp.json(); } catch {}
+        const sObj = (sData && typeof sData === 'object') ? sData as Record<string, unknown> : {};
+        if (!sessionResp.ok) {
+          const detail = typeof sObj.detail === 'string' ? sObj.detail : '';
+          throw new Error(`세션 생성 실패 (${sessionResp.status})${detail ? ': ' + detail : ''}`);
+        }
+  const extracted = (sObj.session_id || sObj.id) as string | undefined;
+  currentSession = extracted ?? null;
         newlyCreated = true;
         setSessionId(currentSession);
         window.dispatchEvent(new CustomEvent('chat-session-created', { detail: { session: sData } }));
@@ -254,19 +275,40 @@ export default function ChatPage() {
       for (const f of localFiles) {
         const form = new FormData();
         form.append('file', f);
-        const upResp = await fetch(`${API_BASE}/media/upload`, { method:'POST', headers: authHeaders, body: form });
-        if (!upResp.ok) throw new Error('이미지 업로드 실패');
-        const upData = await upResp.json();
-        const mid = upData.media_id || upData.mediaId || upData.id;
+        let upResp: Response | null = null;
+        try {
+          upResp = await fetch(`${API_BASE}/media/upload`, { method:'POST', headers: authHeaders, body: form });
+        } catch {
+          throw new Error('이미지 업로드 실패: 네트워크 오류');
+        }
+        let upData: unknown = {};
+        try { upData = await upResp.json(); } catch {}
+        const uObj = (upData && typeof upData === 'object') ? upData as Record<string, unknown> : {};
+        if (!upResp.ok) {
+          const detail = typeof uObj.detail === 'string' ? uObj.detail : '';
+          throw new Error(`이미지 업로드 실패 (${upResp.status})${detail ? ': ' + detail : ''}`);
+        }
+        const mid = (uObj.media_id || uObj.mediaId || uObj.id) as string | undefined;
         if (mid) mediaIds.push(mid);
       }
 
       // send message
       const sendHeaders: Record<string,string> = { 'Content-Type': 'application/json', ...authHeaders };
       const body = { session_id: currentSession, content: originalInput, media_ids: mediaIds };
-      const sendResp = await fetch(`${API_BASE}/chat/send`, { method:'POST', headers: sendHeaders, body: JSON.stringify(body) });
-      if (!sendResp.ok) throw new Error('전송 실패');
-  const payload: SendResponseShape = await sendResp.json();
+      let sendResp: Response | null = null;
+      try {
+        sendResp = await fetch(`${API_BASE}/chat/send`, { method:'POST', headers: sendHeaders, body: JSON.stringify(body) });
+      } catch {
+        throw new Error('전송 실패: 네트워크 오류');
+      }
+      let payloadRaw: unknown = {};
+      try { payloadRaw = await sendResp.json(); } catch {}
+      const payloadObj = (payloadRaw && typeof payloadRaw === 'object') ? payloadRaw as Record<string, unknown> : {};
+      if (!sendResp.ok) {
+        const detail = typeof payloadObj.detail === 'string' ? payloadObj.detail : '';
+        throw new Error(`전송 실패 (${sendResp.status})${detail ? ': ' + detail : ''}`);
+      }
+      const payload = payloadObj as SendResponseShape;
       // try common shapes
   let assistantContent: string | undefined;
   let assistantAttachments: ChatAttachment[] | undefined;
@@ -314,8 +356,9 @@ export default function ChatPage() {
       const finalAssistant: ChatMessage = { role:'assistant', content: assistantContent, ts: Date.now(), attachments: assistantAttachments };
       setMessages(prev => {
         const next = [...prev, finalAssistant];
-        if (matches && matches.length && !prev.some(m => m.role === 'matches')) {
-          next.push({ role:'matches', content: 'matches', ts: Date.now()+1, meta: { matches } });
+        if (matches && matches.length) {
+          // assistant 메시지 meta 에 matches 포함
+          next[next.length - 1] = { ...finalAssistant, meta: { ...(finalAssistant.meta||{}), matches } };
         }
         return next;
       });
@@ -421,50 +464,7 @@ export default function ChatPage() {
                   if (acc.lastDate !== msgDate) {
                     acc.elements.push(<div key={`date-${m.ts}`} className={styles.dateDivider}>{msgDate}</div>);
                   }
-                  if (m.role === 'matches') {
-                    const list = m.meta?.matches || [];
-                    acc.elements.push(
-                      <div key={m.ts + '-' + i} className={`${styles.msgGroup} ${styles.msgGroupAssistant}`}>
-                        <div className={styles.msgStack}>
-                          <div className={`${styles.bubble} ${styles.bubbleAssistant}`} style={{padding:'12px 16px'}}>
-                            <div style={{fontWeight:600, marginBottom:6}}>유사한 습득물 매칭 결과</div>
-                            <ul style={{listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:8}}>
-                              {list.map((item, idx2) => {
-                                const title = item.itemName || item.itemCategory || item.atcId || '항목';
-                                const atcId = item.atcId || '';
-                                return (
-                                  <li key={idx2} style={{border:'1px solid rgba(255,255,255,0.15)', borderRadius:10, padding:8, background:'rgba(255,255,255,0.05)'}}>
-                                    <button
-                                      type="button"
-                                      onClick={() => openLost112Detail(atcId)}
-                                      style={{
-                                        all: 'unset',
-                                        cursor: atcId ? 'pointer' : 'default',
-                                        color:'#fff',
-                                        fontWeight:500,
-                                        display:'inline-block'
-                                      }}
-                                      aria-label={atcId ? `${title} 상세 (새 탭)` : title}
-                                      disabled={!atcId}
-                                    >{title}</button>
-                                    <div style={{fontSize:'0.65rem', opacity:.85, marginTop:4, lineHeight:1.4}}>
-                                      {item.itemCategory && <span>{item.itemCategory}</span>}{item.itemCategory && (item.foundDate || item.storagePlace) && ' · '}
-                                      {item.foundDate && <span>{item.foundDate}</span>}{item.foundDate && item.storagePlace && ' · '}
-                                      {item.storagePlace && <span>{item.storagePlace}</span>}
-                                      {typeof item.score === 'number' && <span style={{marginLeft:6}}>({Math.round(item.score)}점)</span>}
-                                    </div>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
-                          <div className={styles.time}>{formatTime(m.ts)}</div>
-                        </div>
-                      </div>
-                    );
-                    acc.lastDate = msgDate;
-                    return acc;
-                  }
+                  // 이전 'matches' role 제거: assistant 메시지 meta.matches 로 렌더
                   const isUser = m.role === 'user';
                   acc.elements.push(
                     <div key={m.ts + '-' + i} className={`${styles.msgGroup} ${isUser ? styles.msgGroupUser : styles.msgGroupAssistant}`}>
@@ -489,21 +489,59 @@ export default function ChatPage() {
                             ))}
                           </div>
                         )}
-                        <div className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant} ${!isUser ? styles.bubbleWithAvatar : ''}`}>
-                          {isUser ? m.content : (
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              rehypePlugins={[rehypeSanitize]}
-                              components={{
-                                a: (props: React.ComponentProps<'a'>) => <a {...props} target="_blank" rel="noopener noreferrer" />,
-                                code: (props: { className?: string; children?: React.ReactNode }) => {
-                                  const { className, children, ...rest } = (props || {}) as { className?: string; children?: React.ReactNode };
-                                  return <code className={className} {...rest}>{children}</code>;
-                                }
-                              }}
-                            >{m.content}</ReactMarkdown>
-                          )}
-                        </div>
+                        {(!isUser || (m.content && m.content.trim().length > 0)) && (
+                          <div className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant} ${!isUser ? styles.bubbleWithAvatar : ''}`}>
+                            {isUser ? m.content : (
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeSanitize]}
+                                components={{
+                                  a: (props: React.ComponentProps<'a'>) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+                                  code: (props: { className?: string; children?: React.ReactNode }) => {
+                                    const { className, children, ...rest } = (props || {}) as { className?: string; children?: React.ReactNode };
+                                    return <code className={className} {...rest}>{children}</code>;
+                                  }
+                                }}
+                              >{m.content}</ReactMarkdown>
+                            )}
+                          </div>
+                        )}
+                        {!isUser && m.meta?.matches && m.meta.matches.length > 0 && (
+                          <div className={styles.msgStack} style={{marginTop:6}}>
+                            <div className={`${styles.bubble} ${styles.bubbleAssistant}`} style={{padding:'12px 16px'}}>
+                              <div style={{fontWeight:600, marginBottom:6}}>유사한 습득물 매칭 결과</div>
+                              <ul style={{listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:8}}>
+                                {m.meta.matches.map((item, idx2) => {
+                                  const title = item.itemName || item.itemCategory || item.atcId || '항목';
+                                  const atcId = item.atcId || '';
+                                  return (
+                                    <li key={idx2} style={{border:'1px solid rgba(255,255,255,0.15)', borderRadius:10, padding:8, background:'rgba(255,255,255,0.05)'}}>
+                                      <button
+                                        type="button"
+                                        onClick={() => openLost112Detail(atcId)}
+                                        style={{
+                                          all: 'unset',
+                                          cursor: atcId ? 'pointer' : 'default',
+                                          color:'#fff',
+                                          fontWeight:500,
+                                          display:'inline-block'
+                                        }}
+                                        aria-label={atcId ? `${title} 상세 (새 탭)` : title}
+                                        disabled={!atcId}
+                                      >{title}</button>
+                                      <div style={{fontSize:'0.65rem', opacity:.85, marginTop:4, lineHeight:1.4}}>
+                                        {item.itemCategory && <span>{item.itemCategory}</span>}{item.itemCategory && (item.foundDate || item.storagePlace) && ' · '}
+                                        {item.foundDate && <span>{item.foundDate}</span>}{item.foundDate && item.storagePlace && ' · '}
+                                        {item.storagePlace && <span>{item.storagePlace}</span>}
+                                        {typeof item.score === 'number' && <span style={{marginLeft:6}}>({Math.round(item.score)}점)</span>}
+                                      </div>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
                         <div className={`${styles.time} ${isUser ? styles.timeUser : ''}`}>{formatTime(m.ts)}</div>
                       </div>
                     </div>
