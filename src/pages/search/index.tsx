@@ -1,6 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 // src/pages/find/index.tsx
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import DatePicker from '@/components/DatePicker';
 import { useLostItems } from '../map/useLostItems';
 import { categories } from '@/components/map/category/categoryData';
 import styles from './search.module.css';
@@ -87,7 +89,7 @@ export default function FindItemsPage() {
   const [selectedItem, setSelectedItem] = useState<LostItem | null>(null);
 
   const processedItems = useMemo(() => {
-    let items = allItems.filter(item => {
+  const items = allItems.filter(item => {
       if (hasPhoto && (!item.photo || NO_IMAGE_URLS.includes(item.photo))) return false;
       if (mainCategory && item.category) {
         const [itemMain, itemSub] = item.category.split(' > ');
@@ -149,10 +151,7 @@ export default function FindItemsPage() {
     resetPage();
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(e.target.value);
-    resetPage();
-  };
+  // date change handled inline in DatePicker onChange
 
   const handleCardClick = (item: LostItem) => setSelectedItem(item);
   const closeModal = () => setSelectedItem(null);
@@ -185,12 +184,17 @@ export default function FindItemsPage() {
             onChange={handleSortOrDateChange}
           />
           {sortOrDate === 'date' && (
-            <input
-              type="date"
-              className={styles.dateInput}
-              value={selectedDate}
-              onChange={handleDateChange}
-            />
+            <div className={styles.dateInputWrap}>
+              <DatePicker value={selectedDate} onChange={(v)=>{ setSelectedDate(v); resetPage(); }} max={new Date().toISOString().split('T')[0]} ariaLabel="검색 날짜" inputClassName={styles.dateInput} />
+              {selectedDate && (
+                <button
+                  type="button"
+                  className={styles.clearDateBtn}
+                  aria-label="날짜 지우기"
+                  onClick={() => { setSelectedDate(''); resetPage(); }}
+                >×</button>
+              )}
+            </div>
           )}
           <div className={styles.checkboxContainer}>
             <input 
@@ -233,6 +237,7 @@ export default function FindItemsPage() {
                   <img 
                     src="/Sad.svg"
                     className={styles.messageImage}
+                    alt="no results"
                   />조건에 맞는 분실물이 없어요!
                   </div>
               )}
