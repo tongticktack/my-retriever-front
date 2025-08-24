@@ -49,7 +49,7 @@ export default function MapPage() {
   };
 
   return (
-    <main className={styles.main}>
+  <main className={`${styles.themeVars} ${styles.main}`}>
       <Panel>
         <div className={styles.header}>
           <h1 className={styles.title}>분실물 지도</h1>

@@ -1,4 +1,4 @@
-:global(:root) {
+.themeVars {
   --bg: #fff;
   --muted: #efefef;
   --accent: #4a4039;

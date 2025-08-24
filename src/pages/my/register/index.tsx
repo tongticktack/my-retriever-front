@@ -246,7 +246,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className={styles.main}>
+    <main className={`${styles.themeVars} ${styles.main}`}>
       <Panel>
         <div className={styles.header}>
           <h1 className={styles.title}>{editId ? "나의 분실물 수정" : "나의 분실물 등록"}</h1>

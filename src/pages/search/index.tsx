@@ -157,7 +157,7 @@ export default function FindItemsPage() {
   const closeModal = () => setSelectedItem(null);
 
   return (
-    <main className={styles.main}>
+    <main className={`${styles.themeVars} ${styles.main}`}>
        <Panel>
         <div className={styles.header}>
           <h1 className={styles.title}>분실물 찾기</h1>

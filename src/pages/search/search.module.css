@@ -1,5 +1,5 @@
 /* src/pages/find/search.module.css */
-:global(:root) {
+.themeVars {
   --bg: #fff;
   --muted: #f3f4f6;
   --accent: #4F4739;
