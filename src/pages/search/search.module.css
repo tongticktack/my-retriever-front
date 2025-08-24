@@ -19,9 +19,11 @@
 }
 
 .title {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
+  font-family: "ONEMobileTitle", "ONEMobile", sans-serif;
   font-weight: 700;
-  color: var(--accent);
+  color: #4F4739;
+  margin: 0 auto;
 }
 
 .filterContainer {
@@ -193,7 +195,8 @@
 }
 
 .message {
-  grid-column: 1 / -1; /* 그리드의 전체 너비를 차지하도록 설정 */
+  grid-column: 1 / -1;
+  /* 그리드의 전체 너비를 차지하도록 설정 */
   width: 100%;
   display: flex;
   flex-direction: column;

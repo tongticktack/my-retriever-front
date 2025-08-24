@@ -159,8 +159,7 @@ export default function FindItemsPage() {
 
   return (
     <main className={styles.main}>
-
-       <Panel className={styles.panelFull}>
+       <Panel>
         <div className={styles.header}>
           <h1 className={styles.title}>분실물 찾기</h1>
         </div>

@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./my.module.css";
 import { db, auth } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, doc, getDoc, deleteDoc } from "firebase/firestore";
 import DetailPage from "./detail";
 import { onAuthStateChanged, User } from "firebase/auth";
 
@@ -16,7 +16,30 @@ type TableRow = {
   place: string; // extracted.region
 };
 
+type AlertModalProps = {
+  open: boolean;
+  message: string;
+  onClose: () => void;
+};
 
+function AlertModal({ open, message, onClose }: AlertModalProps) {
+  if (!open) return null;
+
+  // ConfirmModal과 동일한 CSS 클래스 이름을 사용합니다.
+  return (
+    <div className={styles.confirmModalOverlay} role="dialog" aria-modal="true">
+      <div className={styles.confirmModal}>
+        <img src="/Smile.svg" alt="smile" className={styles.confirmIcon} />
+        <h3 className={styles.confirmTitle}>알림</h3>
+        <p className={styles.confirmMessage}>{message}</p>
+        <div className={styles.confirmActions}>
+          {/* 버튼만 하나로 변경하고, 새로 만든 CSS 클래스를 적용합니다. */}
+          <button className={styles.alertOkBtn} onClick={onClose}>확인</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 const PAGE_SIZE = 10;
 
 export default function MyPage() {
@@ -29,6 +52,9 @@ export default function MyPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<any | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+
 
   // 페이지 번호 묶음 계산
   const chunkSize = 10;
@@ -37,7 +63,7 @@ export default function MyPage() {
   const endPage = Math.min(startPage + chunkSize - 1, totalPages);
   const prevChunkStart = Math.max(1, startPage - chunkSize);
   const nextChunkStart = Math.min(totalPages, startPage + chunkSize);
-  
+
   // 사용자 인증 상태 감지 및 firebase에서 분실물 목록 불러오기
   useEffect(() => {
     let mounted = true;
@@ -77,7 +103,7 @@ export default function MyPage() {
           setRows(items);
           setTotalPages(Math.max(1, Math.ceil(items.length / PAGE_SIZE)));
           if (snap.size === 0) {
-            setError('등록하신 적이 없습니다 !');
+            setError('등록하신 분실물이 없어요!');
           } else {
             setError(null);
           }
@@ -100,6 +126,31 @@ export default function MyPage() {
   const paged = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const router = useRouter();
 
+  const handleDelete = async (itemId: string) => {
+    if (!user) {
+      alert('오류: 사용자 정보가 없습니다.');
+      return;
+    }
+
+    try {
+      // 1. Firestore 문서 경로 참조
+      const itemRef = doc(db, 'lost_items', user.uid, 'items', itemId);
+
+      // 2. Firestore에서 문서 삭제
+      await deleteDoc(itemRef);
+
+      // 3. 현재 화면의 목록(state)에서도 삭제된 항목 제거
+      setRows(currentRows => currentRows.filter(row => row.id !== itemId));
+
+      // 4. 모달 닫기
+      setDetailOpen(false);
+      setShowSuccessModal(true);
+
+    } catch (err) {
+      console.error("삭제 중 오류 발생: ", err);
+      alert('삭제하는 중 오류가 발생했습니다.');
+    }
+  };
   return (
     <main className={styles.main}>
       <Panel>
@@ -224,18 +275,26 @@ export default function MyPage() {
           </section>
 
           {/* 🔹 분실물 등록 버튼 (로그인 상태일 때만) */}
-          {user && (
-            <button className={styles.floatingButton} type="button" onClick={() => router.push('/my/register')}>
-              <Image src="/pawIcon-white.svg" alt="paw" width={20} height={20} />
-              <span>분실물 등록</span>
-            </button>
+          {user && (<button className={styles.floatingButton} type="button" onClick={() => router.push('/my/register')}>
+            <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
+            <span>분실물 등록</span>
+          </button>
           )}
-
-          {/* 🔹 상세 페이지 모달 */}
-          <DetailPage open={detailOpen} loading={loadingDetail} item={detailItem} onClose={() => setDetailOpen(false)} />
         </div>
       </Panel>
-
+        <DetailPage open={detailOpen}
+          loading={loadingDetail} item={detailItem}
+          onClose={() => setDetailOpen(false)}
+          onDelete={() => {
+            if (detailItem?.id) {
+              handleDelete(detailItem.id);
+            }
+          }} />
+        <AlertModal
+          open={showSuccessModal}
+          message="삭제가 완료되었어요!"
+          onClose={() => setShowSuccessModal(false)}
+        />
     </main>
   );
 }
