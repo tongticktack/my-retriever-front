@@ -70,6 +70,30 @@
   box-shadow: 0 0 0 3px rgba(61, 53, 44, 0.35);
 }
 
+.secondaryButton {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.9rem 1.25rem;
+  background: #ffffff;
+  color: #3d352c;
+  font-weight: 600;
+  border: 1px solid #d9d3cb;
+  outline: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.secondaryButton:hover {
+  background: #f6f4f2;
+  border-color: #c8c1b8;
+}
+
+.secondaryButton:focus-visible {
+  box-shadow: 0 0 0 3px rgba(61, 53, 44, 0.25);
+}
+
 .divider {
   margin: 2.5rem 0 1.5rem;
   height: 1px;

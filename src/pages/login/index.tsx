@@ -71,6 +71,14 @@ export default function LoginPage() {
           <button className={styles.button} disabled={submitting}>
             {submitting ? "로그인 중..." : "로그인"}
           </button>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => router.push('/signup')}
+            disabled={submitting}
+          >
+            회원가입
+          </button>
         </form>
         <hr className={styles.divider} />
         <button className={styles.googleBtn} onClick={handleGoogle} disabled={submitting}>
