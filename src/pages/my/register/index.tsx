@@ -3,10 +3,10 @@ import Image from "next/image";
 import router from "next/router";
 import Panel from "@/components/Panel";
 import styles from "./register.module.css";
-import { categories} from "@/components/map/category/categoryData";
+import { categories } from "@/components/map/category/categoryData";
 import { useRef, useEffect } from "react";
 import { db, storage, auth } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function RegisterPage() {
@@ -20,10 +20,10 @@ export default function RegisterPage() {
   const mainRef = useRef<HTMLDivElement | null>(null);
   const subRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [photos, setPhotos] = useState<File[]>([]); 
-  const [newPreviews, setNewPreviews] = useState<string[]>([]); 
-  const [existingMediaIds, setExistingMediaIds] = useState<string[]>([]); 
-  const [existingPreviewUrls, setExistingPreviewUrls] = useState<string[]>([]); 
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [existingMediaIds, setExistingMediaIds] = useState<string[]>([]);
+  const [existingPreviewUrls, setExistingPreviewUrls] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [saving, setSaving] = useState(false);
   const [place, setPlace] = useState<string>("");
@@ -52,7 +52,7 @@ export default function RegisterPage() {
         if (!userId) return;
 
         //firebase 문서 참조 (lost_items->items)
-        const docRef = doc(db, "lost_items", userId, "items", String(id));
+        const docRef = doc(db, "lost_items", userId);
         const snap = await getDoc(docRef);
         if (!snap.exists()) return;
 
@@ -102,25 +102,25 @@ export default function RegisterPage() {
     load();
   }, [router.query]);
 
-// 사용자 선택 파일 준비 및 저장
+  // 사용자 선택 파일 준비 및 저장
   function handleFiles(files: FileList | File[]) {
-  newPreviews.forEach((p) => URL.revokeObjectURL(p));
+    newPreviews.forEach((p) => URL.revokeObjectURL(p));
 
     const arr = Array.from(files as FileList);
     setPhotos(arr);
 
     const urls = arr.map((f) => URL.createObjectURL(f));
-  setNewPreviews(urls);
+    setNewPreviews(urls);
   }
 
   // 특정 사진 제거
   function removePhoto(index: number) {
-  const url = newPreviews[index];
+    const url = newPreviews[index];
     if (url) URL.revokeObjectURL(url);
 
     // 해당 인덱스 제거
     setPhotos((prev) => prev.filter((_, i) => i !== index));
-  setNewPreviews((prev) => prev.filter((_, i) => i !== index));
+    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   // 바깥 영역 클릭 시 드롭다운 닫기
@@ -143,8 +143,8 @@ export default function RegisterPage() {
     if (saving) return;
     setSaving(true);
     try {
-  //새로 추가된 사진을 firebase storage에 업로드 -> 경로 모으기
-  const mediaIds: string[] = [...existingMediaIds];
+      //새로 추가된 사진을 firebase storage에 업로드 -> 경로 모으기
+      const mediaIds: string[] = [...existingMediaIds];
       for (const file of photos) {
         const path = `lost/${Date.now()}_${file.name}`;
         const pRef = storageRef(storage, path);
@@ -156,39 +156,45 @@ export default function RegisterPage() {
 
       // editId 기준 -> 있으면 수정, 없으면 등록
       if (userId) {
+        const userDocRef = doc(db, "lost_items", userId);
         if (editId) {
-
-          // 기존 문서 업데이트 (수정)
-          const itemRef = doc(db, "lost_items", userId, "items", editId);
-          await updateDoc(itemRef, {
-            extracted: {
-              category: mainCategory,
-              lost_date: date,
-              region: place,
-              subcategory: subCategory,
-            },
-            media_ids: mediaIds,
-            item_name: itemName,
-            note: note,
-            updated_at: serverTimestamp(),
-          });
-
-          // 새로운 문서 생성 (등록)
+          // 수정: 전체 문서를 가져와서 -> items 배열을 수정한 뒤 -> 덮어쓰기
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            const existingItems = docSnap.data().items || [];
+            const updatedItems = existingItems.map((item: any) => {
+              if (item.id === editId) {
+                // 수정할 아이템을 찾아 내용 변경
+                return {
+                  ...item, // 기존 id, created_at 등은 유지
+                  extracted: { category: mainCategory, lost_date: date, region: place, subcategory: subCategory },
+                  media_ids: mediaIds,
+                  item_name: itemName,
+                  note: note,
+                  is_found: false,
+                  updated_at: new Date(),
+                };
+              }
+              return item;
+            });
+            await updateDoc(userDocRef, { items: updatedItems });
+          }
         } else {
-          const itemsCol = collection(db, "lost_items", userId, "items");
-          await addDoc(itemsCol, {
-            extracted: {
-              category: mainCategory,
-              lost_date: date,
-              region: place,
-              subcategory: subCategory,
-            },
+          // 등록: 새 아이템 객체를 생성하여 items 배열에 추가
+          const newItem = {
+            id: Date.now().toString(), // 배열 내에서 고유 ID 생성
+            extracted: { category: mainCategory, lost_date: date, region: place, subcategory: subCategory },
             media_ids: mediaIds,
             item_name: itemName,
             note: note,
-            created_at: serverTimestamp(),
-            updated_at: serverTimestamp(),
-          });
+            is_found: false,    
+            created_at: new Date(),
+            updated_at: new Date(),
+          };
+          // setDoc과 { merge: true }를 사용해 문서가 없으면 생성하고, 있으면 items 배열만 업데이트
+          await setDoc(userDocRef, {
+            items: arrayUnion(newItem)
+          }, { merge: true });
         }
       }
       // 성공 표시 -> 상태 초기화
@@ -200,9 +206,9 @@ export default function RegisterPage() {
       setItemName("");
       setNote("");
       setPhotos([]);
-  setNewPreviews([]);
-  setExistingMediaIds([]);
-  setExistingPreviewUrls([]);
+      setNewPreviews([]);
+      setExistingMediaIds([]);
+      setExistingPreviewUrls([]);
     } catch (err) {
       console.error("저장 실패", err);
       alert("저장에 실패했습니다. 콘솔을 확인하세요.");
@@ -226,7 +232,7 @@ export default function RegisterPage() {
           <h1 className={styles.title}>{editId ? "나의 분실물 수정" : "나의 분실물 등록"}</h1>
         </div>
 
-  <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
+        <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>등록 정보</h2>
 
@@ -246,79 +252,79 @@ export default function RegisterPage() {
               <div className={styles.halfItem}>
                 <div className={styles.fieldWrap}>
                   <div className={styles.customSelect} ref={mainRef}>
-                  <button
-                    type="button"
-                    className={styles.selectToggle}
-                    onClick={() => setOpenMain((v) => !v)}
-                    aria-haspopup="listbox"
-                    aria-expanded={openMain}
-                  >
-                    <span className={mainCategory ? styles.selectedText : styles.placeholderText}>
-                      {mainCategory || "대분류"}
-                    </span>
-                    <span className={styles.chev}>▾</span>
-                  </button>
+                    <button
+                      type="button"
+                      className={styles.selectToggle}
+                      onClick={() => setOpenMain((v) => !v)}
+                      aria-haspopup="listbox"
+                      aria-expanded={openMain}
+                    >
+                      <span className={mainCategory ? styles.selectedText : styles.placeholderText}>
+                        {mainCategory || "대분류"}
+                      </span>
+                      <span className={styles.chev}>▾</span>
+                    </button>
 
-                  {openMain && (
-                    <div className={styles.options} role="listbox">
-                      {categories.map((c) => (
-                        <div
-                          key={c.main}
-                          className={styles.option}
-                          role="option"
-                          onClick={() => {
-                            setMainCategory(c.main);
-                            setSubCategory("");
-                            setOpenMain(false);
-                          }}
-                        >
-                          {c.main}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                    {openMain && (
+                      <div className={styles.options} role="listbox">
+                        {categories.map((c) => (
+                          <div
+                            key={c.main}
+                            className={styles.option}
+                            role="option"
+                            onClick={() => {
+                              setMainCategory(c.main);
+                              setSubCategory("");
+                              setOpenMain(false);
+                            }}
+                          >
+                            {c.main}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  </div>
+                </div>
               </div>
 
               <div className={styles.halfItem}>
                 <div className={styles.fieldWrap}>
                   <div className={styles.customSelect} ref={subRef}>
-                  <button
-                    type="button"
-                    className={styles.selectToggle}
-                    onClick={() => setOpenSub((v) => !v)}
-                    aria-haspopup="listbox"
-                    aria-expanded={openSub}
-                    disabled={!mainCategory}
-                  >
-                    <span className={subCategory ? styles.selectedText : styles.placeholderText}>
-                      {subCategory || "소분류"}
-                    </span>
-                    <span className={styles.chev}>▾</span>
-                  </button>
+                    <button
+                      type="button"
+                      className={styles.selectToggle}
+                      onClick={() => setOpenSub((v) => !v)}
+                      aria-haspopup="listbox"
+                      aria-expanded={openSub}
+                      disabled={!mainCategory}
+                    >
+                      <span className={subCategory ? styles.selectedText : styles.placeholderText}>
+                        {subCategory || "소분류"}
+                      </span>
+                      <span className={styles.chev}>▾</span>
+                    </button>
 
-                  {openSub && (
-                    <div className={styles.options} role="listbox">
-                      {currentSubs.length === 0 ? (
-                        <div className={styles.optionDisabled}>대분류를 선택해주세요</div>
-                      ) : (
-                        currentSubs.map((s) => (
-                          <div
-                            key={s}
-                            className={styles.option}
-                            role="option"
-                            onClick={() => {
-                              setSubCategory(s);
-                              setOpenSub(false);
-                            }}
-                          >
-                            {s}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
+                    {openSub && (
+                      <div className={styles.options} role="listbox">
+                        {currentSubs.length === 0 ? (
+                          <div className={styles.optionDisabled}>대분류를 선택해주세요</div>
+                        ) : (
+                          currentSubs.map((s) => (
+                            <div
+                              key={s}
+                              className={styles.option}
+                              role="option"
+                              onClick={() => {
+                                setSubCategory(s);
+                                setOpenSub(false);
+                              }}
+                            >
+                              {s}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -363,7 +369,7 @@ export default function RegisterPage() {
 
             {/* 사진 업로드 */}
             <div className={styles.photoUploadWrapper}>
-        <input
+              <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
@@ -401,11 +407,11 @@ export default function RegisterPage() {
                   }
                 }}
               >
-                
+
                 {/* 사진이 하나도 없을 때 */}
                 {existingPreviewUrls.length === 0 && newPreviews.length === 0 ? (
                   <div className={styles.photoPlaceholder}>
-                    <div className={styles.plus}>＋</div> 
+                    <div className={styles.plus}>＋</div>
                     <div>사진 업로드 (클릭 또는 드래그)</div>
                   </div>
                 ) : (
@@ -445,22 +451,22 @@ export default function RegisterPage() {
               {saving ? "저장중..." : (editId ? "수정" : "등록")}
             </button>
             <button className={styles.backButton} type="button" onClick={() => router.push('/my')}>
-            <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
-            <span>목록으로 돌아가기</span>
-          </button>
+              <Image src="/pawIcon.svg" alt="paw" width={20} height={20} />
+              <span>목록으로 돌아가기</span>
+            </button>
           </div>
         </form>
       </Panel>
 
-                
-  {showSuccess && (
+
+      {showSuccess && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <img src="/Smile.svg" alt="smile" />
             <p className={styles.modalText}>{editId ? "수정이 완료되었어요!" : "등록이 완료되었어요!"}</p>
             <button
               className={styles.modalClose}
-      onClick={() => { setShowSuccess(false); router.push('/my'); }}
+              onClick={() => { setShowSuccess(false); router.push('/my'); }}
             >
               확인
             </button>
@@ -482,7 +488,7 @@ export default function RegisterPage() {
       {showReview && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
-            <h3 className={styles.modalText} style={{ paddingTop: '20px'}}>제출 전 항목을 확인하세요</h3>
+            <h3 className={styles.modalText} style={{ paddingTop: '20px' }}>제출 전 항목을 확인하세요</h3>
             <div className={styles.modalContent}>
               <div><strong>분실 장소:</strong> {place}</div>
               <div><strong>대분류 / 소분류:</strong> {mainCategory} / {subCategory}</div>
@@ -490,7 +496,7 @@ export default function RegisterPage() {
               <div><strong>분실물명:</strong> {itemName}</div>
               <div><strong>특이사항:</strong> {note}</div>
             </div>
-            <div style={{display:'flex', gap:8, justifyContent:'center', marginBottom: '10px'}}>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: '10px' }}>
               <button className={styles.modalClose} onClick={() => setShowReview(false)}>취소</button>
               <button className={styles.modalClose} onClick={async () => { setShowReview(false); await performSubmit(); }}>확인</button>
             </div>
