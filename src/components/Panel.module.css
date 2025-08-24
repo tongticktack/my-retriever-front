@@ -11,8 +11,8 @@
   padding: 2rem 2rem 1.5rem;
 }
 
-/* When placed inside a 100vh container (chat) we'll override min-height via inline class on parent */
-.panel.fullHeightParent & {
+/* When placed inside a 100vh container (chat) add a global parent class 'fullHeightParent' */
+:global(.fullHeightParent) .panel {
   min-height: 100%;
 }
 
