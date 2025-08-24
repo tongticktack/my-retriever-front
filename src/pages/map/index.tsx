@@ -16,7 +16,6 @@ const MapViewer = dynamic(() => import('@/components/map/MapViewer'), {
 
 export default function MapPage() {
   const { items, loading } = useLostItems();
-  const [map, setMap] = useState<kakao.maps.Map | null>(null);
   const [mainCategory, setMainCategory] = useState('');
   const [subCategory, setSubCategory] = useState('');
 
@@ -64,7 +63,7 @@ export default function MapPage() {
           }} />
         </div>
         <div className={styles.content} style={{ position: 'relative' }}>
-          <MapViewer onMapClick={handleMapClick} onCreate={setMap}>
+          <MapViewer onMapClick={handleMapClick} onCreate={() => { /* no-op */ }}>
             {!loading && (
               <Markers
                 markers={representativeMarkers}
