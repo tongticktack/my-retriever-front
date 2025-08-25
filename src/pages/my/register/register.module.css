@@ -240,16 +240,24 @@
   cursor: pointer;
 }
 
-.footer {
+.buttonContainer {
   position: relative;
-  display: flex;
-  justify-content: center;
-  margin-top: 6px;
-  margin-top: 1rem;
+  /* backButton의 기준점이 됨 */
+  width: 100%;
+  /* 너비를 100%로 설정 */
   height: 56px;
+  /* 버튼 높이와 동일하게 설정 */
+  margin-top: 1rem;
+  /* 필요에 따라 상단 여백 추가 */
 }
 
 .submit {
+  display: block;
+  /* margin: auto를 적용하기 위해 block 요소로 변경 */
+  margin-left: auto;
+  margin-right: auto;
+  /* 상하 마진은 0, 좌우 마진은 자동으로 계산하여 중앙 정렬 */
+
   width: 220px;
   height: 56px;
   border-radius: 16px;
@@ -260,16 +268,13 @@
 }
 
 .backButton {
-  position: absolute; /* footer를 기준으로 위치를 잡습니다. */
-  right: -270; /* footer의 오른쪽 끝에 배치합니다. */
-  top: 0; /* footer의 세로 중앙에서 시작합니다. */
-   /* 자신의 높이 절반만큼 위로 올려 완벽한 세로 중앙 정렬을 만듭니다. */
-
-  /* 기존 floatingButton의 시각적 스타일은 그대로 가져옵니다. */
+  position: absolute;
+  top: 0%;
+  right: -270px;
   background: #FAF1E6;
   border: none;
   padding: 0.6rem 0.8rem;
-  border-radius: 16px;  
+  border-radius: 16px;
   display: inline-flex;
   gap: 0.6rem;
   align-items: center;

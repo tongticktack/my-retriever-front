@@ -39,7 +39,7 @@ export default function RegisterPage() {
   const [showReview, setShowReview] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
-// url 쿼리로 폼 채우기
+  // url 쿼리로 폼 채우기
   useEffect(() => {
     // 1. 라우터가 준비되지 않았으면 아무 작업도 하지 않습니다.
     if (!router.isReady) return;
@@ -57,7 +57,7 @@ export default function RegisterPage() {
       return;
     }
 
-  const load = async () => {
+    const load = async () => {
       try {
         const userId = auth?.currentUser?.uid;
         if (!userId) return;
@@ -69,9 +69,9 @@ export default function RegisterPage() {
           return;
         }
 
-  interface StoredItem { id: string; extracted?: ExtractedFields; media_ids?: string[]; item_name?: string; note?: string; is_found?: boolean; created_at?: string | Date; updated_at?: string | Date; }
-    const itemsArray: StoredItem[] = snap.data().items || [];
-    const itemToEdit = itemsArray.find((item) => item.id === id);
+        interface StoredItem { id: string; extracted?: ExtractedFields; media_ids?: string[]; item_name?: string; note?: string; is_found?: boolean; created_at?: string | Date; updated_at?: string | Date; }
+        const itemsArray: StoredItem[] = snap.data().items || [];
+        const itemToEdit = itemsArray.find((item) => item.id === id);
 
         if (!itemToEdit) {
           console.warn(`ID '${id}'에 해당하는 아이템을 배열에서 찾을 수 없습니다.`);
@@ -115,10 +115,10 @@ export default function RegisterPage() {
         console.error('failed to load item for edit', err);
       }
     };
-    
+
     load();
-  // id 값 변화만 감지 (router.query 객체 전체 의존 방지)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // id 값 변화만 감지 (router.query 객체 전체 의존 방지)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query.id]);
 
   // 사용자 선택 파일 준비 및 저장
@@ -519,7 +519,7 @@ export default function RegisterPage() {
           </section>
 
           <div className={styles.requiredNote}>사진을 제외한 모든 항목을 작성해야 합니다.</div>
-          <div className={styles.footer}>
+          <div className={styles.buttonContainer}>
             <button className={styles.submit} type="button" disabled={saving} onClick={handleRegisterClick}>
               {saving ? "저장중..." : (editId ? "수정" : "등록")}
             </button>

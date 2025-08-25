@@ -156,7 +156,7 @@
 .thumbnail {
   width: 150px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 16px;
   border: 2px dashed rgba(79,71,57,0.15);
 }
