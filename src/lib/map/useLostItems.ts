@@ -34,7 +34,7 @@ export const useLostItems = () => {
       if (cachedData.portal && cachedData.police) return;
       try {
         const [portalData, policeData] = await Promise.all([
-          fetchAndMapItems('testPortalLostItem'),
+          fetchAndMapItems('PortalLostItem'),
           fetchAndMapItems('testPoliceLostItem')
         ]);
         cachedData.portal = portalData;
